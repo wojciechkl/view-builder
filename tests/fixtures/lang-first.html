@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>ViewBuilder language-first fixture</title>
+<style>
+  #host, #autoHost { width: 1180px; height: 680px; }
+</style>
+</head>
+<body>
+<div id="host"></div>
+<div id="autoHost" data-view-builder data-language="pl"></div>
+
+<script src="../../dist/lang/pl.js"></script>
+<script src="../../dist/view-builder.js"></script>
+<script>
+  window.__builder = window.ViewBuilder.mount('#host', { language: 'pl' });
+</script>
+</body>
+</html>

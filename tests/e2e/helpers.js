@@ -27,6 +27,21 @@ export async function selectColumn(page, index, selector = '#host') {
   await columnHeader(page, index, selector).click();
 }
 
+// Mutates a column through the public API, e.g. to reveal conditionally
+// hidden tabs (Header / Font / Advanced) that hold no UI entry point.
+export async function seedColumn(page, index, patch) {
+  await page.evaluate(({ index, patch }) => {
+    const design = window.__builder.getDesign();
+    const column = design.columns[index];
+    if (patch.header) Object.assign(column.header, patch.header);
+    if (patch.font) Object.assign(column.font, patch.font);
+    for (const key of Object.keys(patch)) {
+      if (key !== 'header' && key !== 'font') column[key] = patch[key];
+    }
+    window.__builder.setDesign(design);
+  }, { index, patch });
+}
+
 export function panelTab(page, name, selector = '#host') {
   return page.locator(`${selector} .vb-tab`).filter({ hasText: new RegExp(`^${escRe(name)}$`) });
 }

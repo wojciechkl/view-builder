@@ -10,24 +10,24 @@ export function uid(prefix = 'id') {
 }
 
 export const COLUMN_TYPES = [
-  { value: 'text', label: 'Text' },
-  { value: 'number', label: 'Number' },
-  { value: 'datetime', label: 'Date/Time' },
-  { value: 'icon', label: 'Icon' },
+  { value: 'text', labelKey: 'option.type.text' },
+  { value: 'number', labelKey: 'option.type.number' },
+  { value: 'datetime', labelKey: 'option.type.datetime' },
+  { value: 'icon', labelKey: 'option.type.icon' },
 ];
 
 export const ALIGN_OPTIONS = [
-  { value: 'left', label: 'Left' },
-  { value: 'center', label: 'Center' },
-  { value: 'right', label: 'Right' },
+  { value: 'left', labelKey: 'option.align.left' },
+  { value: 'center', labelKey: 'option.align.center' },
+  { value: 'right', labelKey: 'option.align.right' },
 ];
 
 export const FONT_FACES = [
-  { value: 'default', label: 'Default Sans Serif' },
-  { value: 'helvetica', label: 'Helvetica' },
-  { value: 'arial', label: 'Arial' },
-  { value: 'times', label: 'Times New Roman' },
-  { value: 'courier', label: 'Courier New' },
+  { value: 'default', labelKey: 'option.face.default' },
+  { value: 'helvetica', labelKey: 'option.face.helvetica' },
+  { value: 'arial', labelKey: 'option.face.arial' },
+  { value: 'times', labelKey: 'option.face.times' },
+  { value: 'courier', labelKey: 'option.face.courier' },
 ];
 
 export const FONT_STACKS = {
@@ -39,50 +39,90 @@ export const FONT_STACKS = {
 };
 
 export const SORT_MODES = [
-  { value: 'none', label: 'None' },
-  { value: 'ascending', label: 'Ascending' },
-  { value: 'descending', label: 'Descending' },
+  { value: 'none', labelKey: 'option.sort.none' },
+  { value: 'ascending', labelKey: 'option.sort.ascending' },
+  { value: 'descending', labelKey: 'option.sort.descending' },
 ];
 
 export const SORT_TYPES = [
-  { value: 'text', label: 'Text' },
-  { value: 'number', label: 'Number' },
-  { value: 'datetime', label: 'Date/Time' },
+  { value: 'text', labelKey: 'option.sortType.text' },
+  { value: 'number', labelKey: 'option.sortType.number' },
+  { value: 'datetime', labelKey: 'option.sortType.datetime' },
 ];
 
 export const TOTAL_MODES = [
-  { value: 'none', label: 'None' },
-  { value: 'total', label: 'Total' },
-  { value: 'average', label: 'Average' },
-  { value: 'min', label: 'Minimum' },
-  { value: 'max', label: 'Maximum' },
-  { value: 'count', label: 'Count' },
+  { value: 'none', labelKey: 'option.total.none' },
+  { value: 'total', labelKey: 'option.total.total' },
+  { value: 'average', labelKey: 'option.total.average' },
+  { value: 'min', labelKey: 'option.total.min' },
+  { value: 'max', labelKey: 'option.total.max' },
+  { value: 'count', labelKey: 'option.total.count' },
 ];
 
 export const NUMBER_FORMATS = [
-  { value: 'general', label: 'General' },
-  { value: 'fixed', label: 'Fixed (2 decimals)' },
-  { value: 'currency', label: 'Currency' },
-  { value: 'percent', label: 'Percent' },
+  { value: 'general', labelKey: 'option.numberFormat.general' },
+  { value: 'fixed', labelKey: 'option.numberFormat.fixed' },
+  { value: 'currency', labelKey: 'option.numberFormat.currency' },
+  { value: 'percent', labelKey: 'option.numberFormat.percent' },
 ];
 
 export const DATE_FORMATS = [
-  { value: 'default', label: 'Default (yyyy-mm-dd)' },
-  { value: 'short', label: 'Short date' },
-  { value: 'long', label: 'Long date' },
-  { value: 'time', label: 'Date and time' },
+  { value: 'default', labelKey: 'option.dateFormat.default' },
+  { value: 'short', labelKey: 'option.dateFormat.short' },
+  { value: 'long', labelKey: 'option.dateFormat.long' },
+  { value: 'time', labelKey: 'option.dateFormat.time' },
 ];
 
 export const VIEW_STYLES = [
-  { value: 'standard', label: 'Standard' },
+  { value: 'standard', labelKey: 'option.viewStyle.standard' },
 ];
 
+export const DEFAULT_FONT = {
+  face: 'default',
+  size: 9,
+  color: '#111111',
+  bold: false,
+  italic: false,
+  underline: false,
+};
+
+export const DEFAULT_HEADER = {
+  hidden: false,
+  align: 'left',
+  useColumnFont: false,
+  face: DEFAULT_FONT.face,
+  size: DEFAULT_FONT.size,
+  color: DEFAULT_FONT.color,
+  bold: true,
+  italic: false,
+  underline: false,
+};
+
+const FONT_KEYS = ['face', 'size', 'color', 'bold', 'italic', 'underline'];
+const HEADER_KEYS = ['hidden', 'align', 'useColumnFont'].concat(FONT_KEYS);
+
+function sameValue(key, value, expected) {
+  if (key === 'color') return String(value).toLowerCase() === String(expected).toLowerCase();
+  return value === expected;
+}
+
+// True when every font property matches the base (DEFAULT_FONT unless given).
+export function isDefaultFont(font, base) {
+  const reference = base || DEFAULT_FONT;
+  return FONT_KEYS.every((key) => sameValue(key, font ? font[key] : undefined, reference[key]));
+}
+
+// True when every header property matches DEFAULT_HEADER.
+export function isDefaultHeader(header) {
+  return HEADER_KEYS.every((key) => sameValue(key, header ? header[key] : undefined, DEFAULT_HEADER[key]));
+}
+
 function defaultFont() {
-  return { face: 'default', size: 9, color: '#111111', bold: false, italic: false, underline: false };
+  return Object.assign({}, DEFAULT_FONT);
 }
 
 function defaultHeader() {
-  return { hidden: false, align: 'left', useColumnFont: false, face: 'default', size: 9, color: '#111111', bold: true, italic: false, underline: false };
+  return Object.assign({}, DEFAULT_HEADER);
 }
 
 export function createColumn(overrides) {

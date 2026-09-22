@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { openHarness, columnTitles, selectColumn, columnHeader, checkOption } from './helpers.js';
+import { openHarness, columnTitles, selectColumn, seedColumn, columnHeader, checkOption } from './helpers.js';
 
 test.describe('WYSIWYG rendering', () => {
   test.beforeEach(async ({ page }) => {
@@ -57,7 +57,7 @@ test.describe('WYSIWYG rendering', () => {
     expect(font.size).toBeGreaterThan(11);
   });
 
-  test('alternating row colors can be toggled from the view panel', async ({ page }) => {
+  test('alternating row colors come from the design and are not editable in the view panel', async ({ page }) => {
     const table = page.locator('#host .vb-view');
     await expect(table).toHaveClass(/vb-alt-rows/);
 
@@ -68,8 +68,7 @@ test.describe('WYSIWYG rendering', () => {
 
     await page.locator('#host .vb-canvas').click({ position: { x: 760, y: 420 } });
     await expect(page.locator('#host .vb-panel')).toContainText('View name');
-    await checkOption(page, 'Alternating row colors').uncheck();
-    await expect(table).not.toHaveClass(/vb-alt-rows/);
+    await expect(checkOption(page, 'Alternating row colors')).toHaveCount(0);
   });
 
   test('totals row is rendered from column totals and formatted', async ({ page }) => {
@@ -87,9 +86,10 @@ test.describe('WYSIWYG rendering', () => {
   });
 
   test('hidden header removes the title but keeps the grid column', async ({ page }) => {
+    await seedColumn(page, 0, { header: { hidden: true } });
     await selectColumn(page, 0);
     await page.locator('#host .vb-tab').filter({ hasText: 'Header' }).click();
-    await checkOption(page, 'Hide column header').check();
+    await expect(checkOption(page, 'Hide column header')).toBeChecked();
     await expect(columnHeader(page, 0)).toHaveClass(/vb-th-hidden/);
     await expect(page.locator('#host .vb-th').nth(0).locator('.vb-th-title')).toHaveCount(0);
     await expect(page.locator('#host tbody tr').nth(0).locator('.vb-td').nth(0)).toBeVisible();

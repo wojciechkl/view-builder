@@ -1,7 +1,11 @@
-import { createColumn, createDesign, uid } from './model.js';
+import { createColumn, createDesign, uid, DEFAULT_FONT, DEFAULT_HEADER } from './model.js';
 
 // Serializes the design to a Domino-DXL-flavoured XML document.
-// The output is intentionally readable and can be round-tripped by deserialize().
+// Only values that differ from the model defaults are written, so the output
+// stays compact and can be round-tripped by deserialize().
+
+const COLUMN_DEFAULTS = createColumn();
+const DESIGN_DEFAULTS = createDesign();
 
 function esc(value) {
   return String(value === null || value === undefined ? '' : value)
@@ -19,52 +23,65 @@ function indent(level) {
   return '  '.repeat(level);
 }
 
-function fontXml(font, level) {
-  const attrs = [
-    'face="' + esc(font.face) + '"',
-    'size="' + esc(font.size) + 'pt"',
-    'color="' + esc(font.color) + '"',
-    'bold="' + bool(font.bold) + '"',
-    'italic="' + bool(font.italic) + '"',
-    'underline="' + bool(font.underline) + '"',
-  ];
+function sameColor(a, b) {
+  return String(a).toLowerCase() === String(b).toLowerCase();
+}
+
+// Attributes of a font that differ from the base font.
+function fontAttrs(font, base) {
+  const reference = base || DEFAULT_FONT;
+  const attrs = [];
+  if (font.face !== reference.face) attrs.push('face="' + esc(font.face) + '"');
+  if (Number(font.size) !== Number(reference.size)) attrs.push('size="' + esc(font.size) + 'pt"');
+  if (!sameColor(font.color, reference.color)) attrs.push('color="' + esc(font.color) + '"');
+  if (!!font.bold !== !!reference.bold) attrs.push('bold="' + bool(font.bold) + '"');
+  if (!!font.italic !== !!reference.italic) attrs.push('italic="' + bool(font.italic) + '"');
+  if (!!font.underline !== !!reference.underline) attrs.push('underline="' + bool(font.underline) + '"');
+  return attrs;
+}
+
+// The <font/> line, or null when the font matches the base font.
+function fontXml(font, level, base) {
+  const attrs = fontAttrs(font, base);
+  if (!attrs.length) return null;
   return indent(level) + '<font ' + attrs.join(' ') + '/>';
 }
 
 function columnXml(column, level) {
   const pad = indent(level);
-  const attrs = [
-    'width="' + esc(column.width) + '"',
-    'resizable="' + bool(column.resizable) + '"',
-    'align="' + esc(column.align) + '"',
-    'showas="' + esc(column.type) + '"',
-    'sort="' + esc(column.sort) + '"',
-    'sorttype="' + esc(column.sortType) + '"',
-    'clicktosort="' + bool(column.clickToSort) + '"',
-    'totals="' + esc(column.totals) + '"',
-    'hidedetailrows="' + bool(column.hideDetailRows) + '"',
-    'multivalueseparator="' + esc(column.multiValueSeparator) + '"',
-    'numberformat="' + esc(column.numberFormat) + '"',
-    'dateformat="' + esc(column.dateFormat) + '"',
-    'programmaticname="' + esc(column.programmaticName) + '"',
-  ];
-  const lines = [pad + '<column ' + attrs.join(' ') + '>'];
+  const attrs = [];
+  if (column.width !== COLUMN_DEFAULTS.width) attrs.push('width="' + esc(column.width) + '"');
+  if (column.resizable !== COLUMN_DEFAULTS.resizable) attrs.push('resizable="' + bool(column.resizable) + '"');
+  if (column.align !== COLUMN_DEFAULTS.align) attrs.push('align="' + esc(column.align) + '"');
+  if (column.type !== COLUMN_DEFAULTS.type) attrs.push('showas="' + esc(column.type) + '"');
+  if (column.sort !== COLUMN_DEFAULTS.sort) attrs.push('sort="' + esc(column.sort) + '"');
+  if (column.sortType !== COLUMN_DEFAULTS.sortType) attrs.push('sorttype="' + esc(column.sortType) + '"');
+  if (column.clickToSort !== COLUMN_DEFAULTS.clickToSort) attrs.push('clicktosort="' + bool(column.clickToSort) + '"');
+  if (column.totals !== COLUMN_DEFAULTS.totals) attrs.push('totals="' + esc(column.totals) + '"');
+  if (column.hideDetailRows !== COLUMN_DEFAULTS.hideDetailRows) attrs.push('hidedetailrows="' + bool(column.hideDetailRows) + '"');
+  if (column.multiValueSeparator !== COLUMN_DEFAULTS.multiValueSeparator) attrs.push('multivalueseparator="' + esc(column.multiValueSeparator) + '"');
+  if (column.numberFormat !== COLUMN_DEFAULTS.numberFormat) attrs.push('numberformat="' + esc(column.numberFormat) + '"');
+  if (column.dateFormat !== COLUMN_DEFAULTS.dateFormat) attrs.push('dateformat="' + esc(column.dateFormat) + '"');
+  if (column.programmaticName) attrs.push('programmaticname="' + esc(column.programmaticName) + '"');
 
-  const headerAttrs = [
-    'hidden="' + bool(column.header.hidden) + '"',
-    'align="' + esc(column.header.align) + '"',
-    'usecolumnfont="' + bool(column.header.useColumnFont) + '"',
-  ];
-  lines.push(indent(level + 1) + '<columnheader ' + headerAttrs.join(' ') + '>');
-  lines.push(fontXml(column.header, level + 2));
-  lines.push(indent(level + 2) + '<code event="header">' + esc(column.title) + '</code>');
-  lines.push(indent(level + 1) + '</columnheader>');
+  const lines = [pad + '<column' + (attrs.length ? ' ' + attrs.join(' ') : '') + '>'];
 
-  lines.push(fontXml(column.font, level + 1));
-  lines.push(indent(level + 1) + '<code event="value">' + esc(column.formula) + '</code>');
-  if (column.hideWhen) {
-    lines.push(indent(level + 1) + '<code event="hidewhen">' + esc(column.hideWhen) + '</code>');
+  const headerAttrs = [];
+  if (column.header.hidden) headerAttrs.push('hidden="' + bool(column.header.hidden) + '"');
+  if (column.header.align !== DEFAULT_HEADER.align) headerAttrs.push('align="' + esc(column.header.align) + '"');
+  if (column.header.useColumnFont) headerAttrs.push('usecolumnfont="' + bool(column.header.useColumnFont) + '"');
+  const headerFont = fontXml(column.header, level + 2, DEFAULT_HEADER);
+  if (headerAttrs.length || headerFont || column.title) {
+    lines.push(indent(level + 1) + '<columnheader' + (headerAttrs.length ? ' ' + headerAttrs.join(' ') : '') + '>');
+    if (headerFont) lines.push(headerFont);
+    if (column.title) lines.push(indent(level + 2) + '<code event="header">' + esc(column.title) + '</code>');
+    lines.push(indent(level + 1) + '</columnheader>');
   }
+
+  const columnFont = fontXml(column.font, level + 1, DEFAULT_FONT);
+  if (columnFont) lines.push(columnFont);
+  if (column.formula) lines.push(indent(level + 1) + '<code event="value">' + esc(column.formula) + '</code>');
+  if (column.hideWhen) lines.push(indent(level + 1) + '<code event="hidewhen">' + esc(column.hideWhen) + '</code>');
   lines.push(pad + '</column>');
   return lines.join('\n');
 }
@@ -72,13 +89,22 @@ function columnXml(column, level) {
 export function serialize(design) {
   const lines = [];
   lines.push('<?xml version="1.0" encoding="UTF-8"?>');
-  lines.push('<view name="' + esc(design.name) + '" alias="' + esc(design.alias) + '" style="' + esc(design.style) + '" alternaterows="' + bool(design.alternateRows) + '">');
-  lines.push(indent(1) + '<code event="selection">' + esc(design.selectionFormula) + '</code>');
+
+  const viewAttrs = [];
+  if (design.name && design.name !== DESIGN_DEFAULTS.name) viewAttrs.push('name="' + esc(design.name) + '"');
+  if (design.alias) viewAttrs.push('alias="' + esc(design.alias) + '"');
+  if (design.style && design.style !== DESIGN_DEFAULTS.style) viewAttrs.push('style="' + esc(design.style) + '"');
+  if (design.alternateRows !== DESIGN_DEFAULTS.alternateRows) viewAttrs.push('alternaterows="' + bool(design.alternateRows) + '"');
+  lines.push('<view' + (viewAttrs.length ? ' ' + viewAttrs.join(' ') : '') + '>');
+
+  if (design.selectionFormula && design.selectionFormula !== DESIGN_DEFAULTS.selectionFormula) {
+    lines.push(indent(1) + '<code event="selection">' + esc(design.selectionFormula) + '</code>');
+  }
   if (design.formFormula) {
     lines.push(indent(1) + '<code event="form">' + esc(design.formFormula) + '</code>');
   }
   lines.push(indent(1) + '<columns>');
-  for (const column of design.columns) lines.push(columnXml(column, 2));
+  for (const column of design.columns || []) lines.push(columnXml(column, 2));
   lines.push(indent(1) + '</columns>');
   lines.push('</view>');
   return lines.join('\n') + '\n';
@@ -177,13 +203,32 @@ function parseColumn(node) {
   return column;
 }
 
+// Turns a <parsererror> element into a short "line X, column Y: message" text.
+function parseErrorMessage(parserError) {
+  let text = String(parserError.textContent || '').replace(/\s+/g, ' ').trim();
+  text = text.replace(/Below is a rendering of the page up to the first error\.?/i, '').trim();
+  let match = text.match(/error on line (\d+) at column (\d+):?\s*(.*)$/i);
+  if (match) return 'line ' + match[1] + ', column ' + match[2] + ': ' + match[3].trim();
+  match = text.match(/Line number (\d+), Column (\d+):?\s*(.*)$/i);
+  if (match) return 'line ' + match[1] + ', column ' + match[2] + ': ' + match[3].trim();
+  return text || 'unknown parse error';
+}
+
 export function deserialize(xml) {
-  if (typeof DOMParser === 'undefined') throw new Error('DOMParser is not available in this environment');
-  const doc = new DOMParser().parseFromString(String(xml || ''), 'application/xml');
+  if (typeof DOMParser === 'undefined') {
+    throw new Error('Cannot parse XML: DOMParser is not available in this environment');
+  }
+  const text = String(xml === null || xml === undefined ? '' : xml);
+  if (!text.trim()) throw new Error('Invalid XML: the document is empty');
+
+  const doc = new DOMParser().parseFromString(text, 'application/xml');
   const parserError = doc.getElementsByTagName('parsererror')[0];
-  if (parserError) throw new Error('Invalid XML: ' + parserError.textContent.replace(/\s+/g, ' ').trim());
+  if (parserError) throw new Error('Invalid XML: ' + parseErrorMessage(parserError));
   const root = doc.documentElement;
-  if (!root || root.nodeName !== 'view') throw new Error('Root element must be <view>');
+  if (!root) throw new Error('Invalid XML: the document has no root element');
+  if (root.nodeName !== 'view') {
+    throw new Error('Invalid XML: root element must be <view> but found <' + root.nodeName + '>');
+  }
 
   const design = createDesign({ columns: [] });
   design.name = attr(root, 'name', design.name);
@@ -196,10 +241,8 @@ export function deserialize(xml) {
   const form = codeEvent(root, 'form');
   if (form) design.formFormula = form.textContent;
 
-  const columnsNode = directChild(root, 'columns') || root;
-  const columnNodes = columnsNode.getElementsByTagName('column');
-  for (let i = 0; i < columnNodes.length; i += 1) {
-    design.columns.push(parseColumn(columnNodes[i]));
-  }
+  const columnsNode = directChild(root, 'columns');
+  const columnNodes = columnsNode ? directChildren(columnsNode, 'column') : directChildren(root, 'column');
+  for (const node of columnNodes) design.columns.push(parseColumn(node));
   return design;
 }

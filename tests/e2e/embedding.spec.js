@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { openHarness, HARNESS_URL, XPAGES_URL, columnTitles, selectColumn, fieldInput, toolbarButton, dialog } from './helpers.js';
+import { openHarness, HARNESS_URL, XPAGES_URL, columnTitles, selectColumn, seedColumn, fieldInput, toolbarButton, dialog } from './helpers.js';
 
 test.describe('XPages embedding', () => {
   test('renders inside a form despite hostile global page styles', async ({ page }) => {
@@ -167,6 +167,8 @@ test.describe('XPages embedding', () => {
     await toolbarButton(page, '+ Add Column').click();
     await selectColumn(page, 1);
     await fieldInput(page, 'Title').fill('Edited');
+    await seedColumn(page, 1, { header: { useColumnFont: true } });
+    await selectColumn(page, 1);
     await page.locator('#host .vb-tab').filter({ hasText: 'Font' }).click();
     await fieldInput(page, 'Size (pt)').fill('11');
     await toolbarButton(page, 'Export XML').click();

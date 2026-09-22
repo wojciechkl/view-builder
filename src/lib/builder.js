@@ -4,6 +4,7 @@ import { renderCanvas } from './canvas.js';
 import { renderPanel } from './panel.js';
 import { openFormulaDialog, openExportDialog, openImportDialog } from './dialog.js';
 import { serialize, deserialize } from './xml.js';
+import { createTranslator, resolveLanguage } from './i18n.js';
 import css from './styles.css?inline';
 
 export class ViewBuilder {
@@ -15,11 +16,16 @@ export class ViewBuilder {
     this.host = host;
     host.__vb = this;
     this.options = options || {};
+    this.language = resolveLanguage(this.options.language);
+    this.t = createTranslator(this.language);
     this.design = this.options.design ? cloneDesign(this.options.design) : createDesign();
     this.selectedId = this.design.columns.length ? this.design.columns[0].id : null;
     this.tab = 'basics';
+    this.mode = 'design';
     this._dragId = null;
     this._destroyed = false;
+    this._xmlTimer = null;
+    this._xmlAppliedText = '';
 
     this._buildRoot();
     this._renderShell();
@@ -45,38 +51,112 @@ export class ViewBuilder {
   }
 
   _renderShell() {
+    const t = this.t;
     this.app = el('div', { class: 'vb-app' });
 
     const toolbar = el('div', { class: 'vb-toolbar' });
     const columnGroup = el('div', { class: 'vb-toolbar-group' });
-    this.btnAdd = el('button', { type: 'button', class: 'vb-btn vb-btn-primary', text: '+ Add Column', onclick: () => this.addColumn() });
-    this.btnDelete = el('button', { type: 'button', class: 'vb-btn', text: 'Delete', title: 'Delete selected column', onclick: () => this.removeSelectedColumn() });
-    this.btnLeft = el('button', { type: 'button', class: 'vb-btn', text: '\u2190', title: 'Move column left', onclick: () => this.moveSelected(-1) });
-    this.btnRight = el('button', { type: 'button', class: 'vb-btn', text: '\u2192', title: 'Move column right', onclick: () => this.moveSelected(1) });
+    this.btnAdd = el('button', { type: 'button', class: 'vb-btn vb-btn-primary', onclick: () => this.addColumn() });
+    this.btnDelete = el('button', { type: 'button', class: 'vb-btn', onclick: () => this.removeSelectedColumn() });
+    this.btnLeft = el('button', { type: 'button', class: 'vb-btn', text: '\u2190', onclick: () => this.moveSelected(-1) });
+    this.btnRight = el('button', { type: 'button', class: 'vb-btn', text: '\u2192', onclick: () => this.moveSelected(1) });
     columnGroup.appendChild(this.btnAdd);
     columnGroup.appendChild(this.btnDelete);
     columnGroup.appendChild(this.btnLeft);
     columnGroup.appendChild(this.btnRight);
 
     const xmlGroup = el('div', { class: 'vb-toolbar-group vb-toolbar-right' });
-    xmlGroup.appendChild(el('button', { type: 'button', class: 'vb-btn', text: 'Export XML', onclick: () => this.exportXml() }));
-    xmlGroup.appendChild(el('button', { type: 'button', class: 'vb-btn', text: 'Import XML', onclick: () => this.importXml() }));
+    this.btnXmlMode = el('button', { type: 'button', class: 'vb-btn', onclick: () => this.toggleXmlMode() });
+    this.btnExport = el('button', { type: 'button', class: 'vb-btn', onclick: () => this.exportXml() });
+    this.btnImport = el('button', { type: 'button', class: 'vb-btn', onclick: () => this.importXml() });
+    xmlGroup.appendChild(this.btnXmlMode);
+    xmlGroup.appendChild(this.btnExport);
+    xmlGroup.appendChild(this.btnImport);
 
     toolbar.appendChild(columnGroup);
     toolbar.appendChild(xmlGroup);
 
-    const main = el('div', { class: 'vb-main' });
+    this.main = el('div', { class: 'vb-main' });
     this.canvasWrap = el('div', { class: 'vb-canvas-wrap' });
     this.panelWrap = el('div', { class: 'vb-panel' });
-    main.appendChild(this.canvasWrap);
-    main.appendChild(this.panelWrap);
+    this.main.appendChild(this.canvasWrap);
+    this.main.appendChild(this.panelWrap);
+
+    this.xmlEditor = this._buildXmlEditor();
 
     this.status = el('div', { class: 'vb-status' });
 
     this.app.appendChild(toolbar);
-    this.app.appendChild(main);
+    this.app.appendChild(this.main);
+    this.app.appendChild(this.xmlEditor);
     this.app.appendChild(this.status);
     this.root.appendChild(this.app);
+
+    this._applyStaticTexts();
+  }
+
+  _applyStaticTexts() {
+    const t = this.t;
+    const xmlMode = this.mode === 'xml';
+    this.btnAdd.textContent = t('toolbar.addColumn');
+    this.btnDelete.textContent = t('toolbar.delete');
+    this.btnDelete.title = t('toolbar.deleteTitle');
+    this.btnLeft.title = t('toolbar.moveLeftTitle');
+    this.btnRight.title = t('toolbar.moveRightTitle');
+    this.btnXmlMode.textContent = xmlMode ? t('toolbar.designView') : t('toolbar.xmlEditor');
+    this.btnXmlMode.title = xmlMode ? t('toolbar.designViewTitle') : t('toolbar.xmlEditorTitle');
+    this.btnExport.textContent = t('toolbar.exportXml');
+    this.btnImport.textContent = t('toolbar.importXml');
+    this.btnApplyXml.textContent = t('xml.apply');
+    this.btnApplyXml.title = t('xml.applyTitle');
+    this.btnFormatXml.textContent = t('xml.format');
+    this.btnFormatXml.title = t('xml.formatTitle');
+    this.btnRevertXml.textContent = t('xml.revert');
+    this.btnRevertXml.title = t('xml.revertTitle');
+  }
+
+  _buildXmlEditor() {
+    const t = this.t;
+    const wrap = el('div', { class: 'vb-xml-editor' });
+    const bar = el('div', { class: 'vb-xml-toolbar' });
+    this.btnApplyXml = el('button', {
+      type: 'button',
+      class: 'vb-btn vb-btn-primary',
+      onclick: () => { this.applyXmlText(); this._updateToolbar(); },
+    });
+    this.btnFormatXml = el('button', {
+      type: 'button',
+      class: 'vb-btn',
+      onclick: () => this.formatXmlText(),
+    });
+    this.btnRevertXml = el('button', {
+      type: 'button',
+      class: 'vb-btn',
+      onclick: () => this.reloadXmlText(),
+    });
+    bar.appendChild(this.btnApplyXml);
+    bar.appendChild(this.btnFormatXml);
+    bar.appendChild(this.btnRevertXml);
+    this.xmlStatus = el('div', { class: 'vb-xml-status' });
+    bar.appendChild(this.xmlStatus);
+
+    this.xmlInput = el('textarea', { class: 'vb-xml-editor-input', spellcheck: 'false', wrap: 'off' });
+    this.xmlInput.addEventListener('input', () => {
+      clearTimeout(this._xmlTimer);
+      this._xmlTimer = setTimeout(() => {
+        if (this.mode === 'xml') this.applyXmlText();
+      }, 400);
+    });
+    this.xmlInput.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.keyCode === 83)) {
+        e.preventDefault();
+        this.applyXmlText();
+      }
+    });
+
+    wrap.appendChild(bar);
+    wrap.appendChild(this.xmlInput);
+    return wrap;
   }
 
   // -- rendering -----------------------------------------------------------
@@ -97,30 +177,32 @@ export class ViewBuilder {
   _updateToolbar() {
     const column = this.getSelectedColumn();
     const index = column ? this.design.columns.indexOf(column) : -1;
-    this.btnDelete.disabled = !column;
-    this.btnLeft.disabled = index <= 0;
-    this.btnRight.disabled = index < 0 || index >= this.design.columns.length - 1;
+    const xmlMode = this.mode === 'xml';
+    this.btnAdd.disabled = xmlMode;
+    this.btnDelete.disabled = xmlMode || !column;
+    this.btnLeft.disabled = xmlMode || index <= 0;
+    this.btnRight.disabled = xmlMode || index < 0 || index >= this.design.columns.length - 1;
   }
 
   _updateStatus() {
+    const t = this.t;
     clear(this.status);
     const column = this.getSelectedColumn();
     const index = column ? this.design.columns.indexOf(column) : -1;
-    this.status.appendChild(el('span', { text: this.design.name || 'UntitledView' }));
-    this.status.appendChild(el('span', { text: this.design.columns.length + ' columns' }));
-    this.status.appendChild(el('span', { text: SAMPLE_ROW_COUNT + ' sample rows' }));
-    this.status.appendChild(el('span', {
-      class: 'vb-status-hint',
-      text: column
-        ? 'Selected: column ' + (index + 1) + (column.title ? ' (' + column.title + ')' : '')
-        : 'Select a column header to edit its properties',
-    }));
+    this.status.appendChild(el('span', { text: this.design.name || t('caption.untitled') }));
+    this.status.appendChild(el('span', { text: t('common.columnCountMany', { n: this.design.columns.length }) }));
+    this.status.appendChild(el('span', { text: t('status.sampleRows', { n: SAMPLE_ROW_COUNT }) }));
+    let hint;
+    if (this.mode === 'xml') hint = t('status.xmlHint');
+    else if (column) hint = t('status.selected', { n: index + 1 }) + (column.title ? ' (' + column.title + ')' : '');
+    else hint = t('status.selectHint');
+    this.status.appendChild(el('span', { class: 'vb-status-hint', text: hint }));
   }
 
   _syncPanelSub() {
     const column = this.getSelectedColumn();
     const sub = this.panelWrap.querySelector('[data-role="column-sub"]');
-    if (sub && column) sub.textContent = column.title || '(no title)';
+    if (sub && column) sub.textContent = column.title || this.t('common.noTitle');
   }
 
   _notify() {
@@ -151,6 +233,100 @@ export class ViewBuilder {
     if (this.tab === tab) return;
     this.tab = tab;
     renderPanel(this.panelWrap, this);
+  }
+
+  setLanguage(code) {
+    const language = resolveLanguage(code);
+    if (language === this.language) return this;
+    this.language = language;
+    this.t = createTranslator(language);
+    this._applyStaticTexts();
+    this._render();
+    return this;
+  }
+
+  getLanguage() {
+    return this.language;
+  }
+
+  // -- XML editor mode -----------------------------------------------------
+
+  toggleXmlMode() {
+    this.setMode(this.mode === 'xml' ? 'design' : 'xml');
+  }
+
+  setMode(mode) {
+    const next = mode === 'xml' ? 'xml' : 'design';
+    if (this.mode === next) return;
+    clearTimeout(this._xmlTimer);
+
+    if (next === 'xml') {
+      this.mode = 'xml';
+      this.reloadXmlText();
+      this.main.classList.add('vb-hidden');
+      this.xmlEditor.classList.add('vb-xml-open');
+      this.btnXmlMode.classList.add('vb-btn-active');
+      this._applyStaticTexts();
+      this.xmlInput.focus();
+    } else {
+      if (!this.applyXmlText()) {
+        this.xmlInput.focus();
+        this._updateStatus();
+        return;
+      }
+      this.mode = 'design';
+      this.main.classList.remove('vb-hidden');
+      this.xmlEditor.classList.remove('vb-xml-open');
+      this.btnXmlMode.classList.remove('vb-btn-active');
+      this._applyStaticTexts();
+      this._render();
+    }
+    this._updateToolbar();
+    this._updateStatus();
+  }
+
+  reloadXmlText() {
+    clearTimeout(this._xmlTimer);
+    this.xmlInput.value = this.getXml();
+    this._xmlAppliedText = this.xmlInput.value;
+    this._setXmlStatus('', this.t('xml.editing'));
+  }
+
+  applyXmlText() {
+    const text = this.xmlInput.value;
+    if (text === this._xmlAppliedText) return true;
+    let design;
+    try {
+      design = deserialize(text);
+    } catch (error) {
+      this._setXmlStatus('error', error && error.message ? error.message : String(error));
+      return false;
+    }
+    this.design = design;
+    this.selectedId = design.columns.length ? design.columns[0].id : null;
+    this.tab = 'basics';
+    this._xmlAppliedText = text;
+    const count = design.columns.length;
+    this._setXmlStatus('ok', count === 1 ? this.t('xml.appliedOne') : this.t('xml.appliedMany', { n: count }));
+    this._updateToolbar();
+    this._updateStatus();
+    this._notify();
+    return true;
+  }
+
+  formatXmlText() {
+    try {
+      const design = deserialize(this.xmlInput.value);
+      this.xmlInput.value = serialize(design);
+      this._setXmlStatus('ok', this.t('xml.formatted'));
+    } catch (error) {
+      this._setXmlStatus('error', error && error.message ? error.message : String(error));
+    }
+  }
+
+  _setXmlStatus(kind, message) {
+    this.xmlStatus.className = 'vb-xml-status' + (kind ? ' vb-xml-status-' + kind : '');
+    this.xmlStatus.textContent = message || '';
   }
 
   // -- column operations ---------------------------------------------------
@@ -264,6 +440,7 @@ export class ViewBuilder {
 
   _openFormula(title, value, hint, onSave) {
     openFormulaDialog(this.root, {
+      t: this.t,
       title: title,
       value: value,
       fields: SAMPLE_FIELDS,
@@ -278,9 +455,9 @@ export class ViewBuilder {
     if (!column) return;
     const index = this.design.columns.indexOf(column);
     this._openFormula(
-      'Column formula - column ' + (index + 1),
+      this.t('formula.columnTitle', { n: index + 1 }),
       column.formula,
-      'Formula that computes the column value, e.g. Subject or @Text(Amount).',
+      this.t('formula.columnHint'),
       (value) => this.update((c) => { c.formula = value; }, { panel: true })
     );
   }
@@ -289,27 +466,27 @@ export class ViewBuilder {
     const column = this.getSelectedColumn();
     if (!column) return;
     this._openFormula(
-      'Hide-when formula',
+      this.t('formula.hideWhenTitle'),
       column.hideWhen,
-      'The column is hidden when this formula evaluates to True.',
+      this.t('hint.hideWhen'),
       (value) => this.update((c) => { c.hideWhen = value; }, { panel: true })
     );
   }
 
   editSelectionFormula() {
     this._openFormula(
-      'View selection formula',
+      this.t('formula.selectionTitle'),
       this.design.selectionFormula,
-      'View selection formula, e.g. SELECT @All or SELECT Form = "Memo".',
+      this.t('formula.selectionHint'),
       (value) => this.updateDesign((d) => { d.selectionFormula = value; })
     );
   }
 
   editFormFormula() {
     this._openFormula(
-      'Form formula',
+      this.t('formula.formTitle'),
       this.design.formFormula,
-      'Formula returning the form used to open documents from this view.',
+      this.t('formula.formHint'),
       (value) => this.updateDesign((d) => { d.formFormula = value; })
     );
   }
@@ -326,6 +503,7 @@ export class ViewBuilder {
 
   exportXml() {
     openExportDialog(this.root, {
+      t: this.t,
       xml: this.getXml(),
       filename: (this.design.name || 'view') + '.xml',
     });
@@ -333,6 +511,7 @@ export class ViewBuilder {
 
   importXml() {
     openImportDialog(this.root, {
+      t: this.t,
       onLoad: (xml) => this.setXml(xml),
     });
   }
@@ -347,11 +526,13 @@ export class ViewBuilder {
     this.design = cloneDesign(design);
     this.selectedId = this.design.columns.length ? this.design.columns[0].id : null;
     this._render();
+    if (this.mode === 'xml') this.reloadXmlText();
     this._notify();
   }
 
   destroy() {
     this._destroyed = true;
+    clearTimeout(this._xmlTimer);
     clear(this.root);
     delete this.host.dataset.vbMounted;
     if (this.host.__vb === this) delete this.host.__vb;

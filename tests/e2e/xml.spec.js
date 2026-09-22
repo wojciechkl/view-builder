@@ -22,10 +22,9 @@ test.describe('XML serialization', () => {
     const xml = await xmlInput(page).inputValue();
 
     expect(xml).toContain('<?xml version="1.0" encoding="UTF-8"?>');
-    expect(xml).toContain('<view name="AllDocuments"');
-    expect(xml).toContain('alternaterows="true"');
-    expect(xml).toContain('<code event="selection">SELECT @All</code>');
-    expect(xml.match(/<column /g)).toHaveLength(4);
+    expect(xml).toContain('<view>');
+    expect(xml).toContain('<columns>');
+    expect(xml.match(/<column[ >]/g)).toHaveLength(4);
     expect(xml).toContain('<code event="header">Subject</code>');
     expect(xml).toContain('<code event="value">Amount</code>');
     expect(xml).toContain('numberformat="currency"');
@@ -34,12 +33,61 @@ test.describe('XML serialization', () => {
     await expect(dialog(page).locator('.vb-hint').first()).toContainText('serialized design');
   });
 
+  test('default values are omitted from the serialized XML', async ({ page }) => {
+    const xml = await page.evaluate(() => window.__builder.getXml());
+
+    expect(xml).toContain('<view>');
+    expect(xml).not.toContain('name="AllDocuments"');
+    expect(xml).not.toContain('style="standard"');
+    expect(xml).not.toContain('alternaterows=');
+    expect(xml).not.toContain('<code event="selection">');
+    expect(xml).not.toContain('<font');
+    expect(xml).not.toContain('resizable=');
+    expect(xml).not.toContain('clicktosort=');
+    expect(xml).not.toContain('hidedetailrows=');
+    expect(xml).not.toContain('multivalueseparator=');
+    expect(xml).not.toContain('numberformat="general"');
+    expect(xml).not.toContain('dateformat="default"');
+    expect(xml).not.toContain('sort="none"');
+    expect(xml).not.toContain('showas="text"');
+  });
+
+  test('non-default fonts and advanced values are serialized partially', async ({ page }) => {
+    const result = await page.evaluate(() => {
+      const design = window.ViewBuilder.createDesign();
+      design.columns[0].font.bold = true;
+      design.columns[0].header.useColumnFont = true;
+      design.columns[0].programmaticName = 'colOne';
+      design.columns[0].hideWhen = 'Status = "Closed"';
+      const xml = window.ViewBuilder.serialize(design);
+      const back = window.ViewBuilder.deserialize(xml);
+      return {
+        xml: xml,
+        fontBold: back.columns[0].font.bold,
+        fontFace: back.columns[0].font.face,
+        useColumnFont: back.columns[0].header.useColumnFont,
+        hideWhen: back.columns[0].hideWhen,
+        programmaticName: back.columns[0].programmaticName,
+      };
+    });
+
+    expect(result.xml).toContain('<font bold="true"/>');
+    expect(result.xml).toContain('usecolumnfont="true"');
+    expect(result.xml).toContain('programmaticname="colOne"');
+    expect(result.xml).toContain('<code event="hidewhen">Status = &quot;Closed&quot;</code>');
+    expect(result.fontBold).toBe(true);
+    expect(result.fontFace).toBe('default');
+    expect(result.useColumnFont).toBe(true);
+    expect(result.hideWhen).toBe('Status = "Closed"');
+    expect(result.programmaticName).toBe('colOne');
+  });
+
   test('view panel export and import buttons open the same dialogs', async ({ page }) => {
     await page.locator('#host .vb-canvas').click({ position: { x: 760, y: 420 } });
     const panel = page.locator('#host .vb-panel');
 
     await panel.locator('.vb-btn').filter({ hasText: 'Export XML' }).click();
-    await expect(xmlInput(page)).toHaveValue(/<view name="AllDocuments"/);
+    await expect(xmlInput(page)).toHaveValue(/<view>/);
     await dialogButton(page, 'Close').click();
 
     await panel.locator('.vb-btn').filter({ hasText: 'Import XML' }).click();
@@ -49,6 +97,11 @@ test.describe('XML serialization', () => {
   });
 
   test('exported XML tracks every panel edit', async ({ page }) => {
+    await page.evaluate(() => {
+      const design = window.__builder.getDesign();
+      design.columns[0].programmaticName = 'seed';
+      window.__builder.setDesign(design);
+    });
     await selectColumn(page, 0);
     await fieldInput(page, 'Title').fill('Doc & Subject');
     await fieldInput(page, 'Width (px)').fill('321');
@@ -73,8 +126,8 @@ test.describe('XML serialization', () => {
     expect(download.suggestedFilename()).toBe('AllDocuments.xml');
     const path = await download.path();
     const content = await fs.readFile(path, 'utf8');
-    expect(content).toContain('<view name="AllDocuments"');
-    expect(content.match(/<column /g)).toHaveLength(4);
+    expect(content).toContain('<view>');
+    expect(content.match(/<column[ >]/g)).toHaveLength(4);
   });
 
   test('copy to clipboard reports success or offers manual copy', async ({ page }) => {
@@ -86,7 +139,7 @@ test.describe('XML serialization', () => {
 
   test('import replaces the whole design and re-renders the canvas', async ({ page }) => {
     const xml = await page.evaluate(() => window.__builder.getXml());
-    const modified = xml.replace('name="AllDocuments"', 'name="ImportedView"').replace('>Subject<', '>ImportedSubject<');
+    const modified = xml.replace('<view>', '<view name="ImportedView">').replace('>Subject<', '>ImportedSubject<');
 
     await openImport(page);
     await xmlInput(page).fill(modified);

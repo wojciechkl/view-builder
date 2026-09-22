@@ -11,26 +11,27 @@ function clearDropClasses(root) {
   }
 }
 
-function renderCaption(design) {
+function renderCaption(design, t) {
   return el('div', { class: 'vb-caption' }, [
-    el('span', { class: 'vb-caption-name', text: design.name || 'UntitledView' }),
+    el('span', { class: 'vb-caption-name', text: design.name || t('caption.untitled') }),
     design.alias ? el('span', { class: 'vb-caption-alias', text: '(' + design.alias + ')' }) : null,
     el('span', {
       class: 'vb-caption-info',
-      text: design.columns.length + (design.columns.length === 1 ? ' column' : ' columns'),
+      text: design.columns.length === 1 ? t('caption.columnCountOne') : t('caption.columnCountMany', { n: design.columns.length }),
     }),
   ]);
 }
 
 function renderHeaderCell(column, index, ctx) {
+  const t = ctx.t;
   const selected = column.id === ctx.selectedId;
+  const name = t('canvas.columnName', { n: index + 1 });
   const th = el('th', {
-    class: 'vb-th' + (selected ? ' vb-selected' : ''),
+    class: 'vb-th' + (selected ? ' vb-selected' : '') + ' vb-align-' + column.header.align,
     draggable: 'true',
     dataset: { id: column.id },
-    title: 'Column ' + (index + 1) + (column.title ? ': ' + column.title : '') + '\nClick to select, double-click to edit the formula, drag to reorder.',
+    title: name + (column.title ? ': ' + column.title : '') + '\n' + t('canvas.headerHint'),
   });
-  th.style.textAlign = column.header.align;
 
   const headerFont = column.header.useColumnFont ? column.font : column.header;
   applyFont(th, headerFont);
@@ -38,20 +39,20 @@ function renderHeaderCell(column, index, ctx) {
   if (!column.header.hidden) {
     th.appendChild(el('span', {
       class: 'vb-th-title' + (column.title ? '' : ' vb-th-placeholder'),
-      text: column.title || 'Column ' + (index + 1),
+      text: column.title || name,
     }));
     if (column.sort !== 'none') {
       th.appendChild(el('span', {
         class: 'vb-sort-arrow',
         text: column.sort === 'ascending' ? '\u25B2' : '\u25BC',
-        title: column.sort === 'ascending' ? 'Sorted ascending' : 'Sorted descending',
+        title: column.sort === 'ascending' ? t('canvas.sortedAscending') : t('canvas.sortedDescending'),
       }));
     }
   } else {
     th.classList.add('vb-th-hidden');
   }
 
-  const handle = el('div', { class: 'vb-resize', title: 'Drag to resize' });
+  const handle = el('div', { class: 'vb-resize', title: t('canvas.resizeTitle') });
   handle.addEventListener('mousedown', (e) => ctx.beginResize(e, column, th));
   th.appendChild(handle);
 
@@ -127,7 +128,8 @@ function renderTotalsRow(design, ctx) {
 export function renderCanvas(host, ctx) {
   clear(host);
   const design = ctx.design;
-  host.appendChild(renderCaption(design));
+  const t = ctx.t;
+  host.appendChild(renderCaption(design, t));
 
   const scroll = el('div', { class: 'vb-canvas' });
   scroll.addEventListener('mousedown', (e) => {
@@ -137,9 +139,9 @@ export function renderCanvas(host, ctx) {
 
   if (!design.columns.length) {
     scroll.appendChild(el('div', { class: 'vb-empty' }, [
-      el('div', { class: 'vb-empty-title', text: 'This view has no columns' }),
-      el('div', { class: 'vb-empty-text', text: 'Add a column to start designing the view.' }),
-      el('button', { type: 'button', class: 'vb-btn vb-btn-primary', text: '+ Add Column', onclick: () => ctx.addColumn() }),
+      el('div', { class: 'vb-empty-title', text: t('canvas.emptyTitle') }),
+      el('div', { class: 'vb-empty-text', text: t('canvas.emptyText') }),
+      el('button', { type: 'button', class: 'vb-btn vb-btn-primary', text: t('toolbar.addColumn'), onclick: () => ctx.addColumn() }),
     ]));
     return;
   }
@@ -160,7 +162,7 @@ export function renderCanvas(host, ctx) {
   headRow.appendChild(el('th', {
     class: 'vb-th vb-th-add',
     text: '+',
-    title: 'Add column',
+    title: t('canvas.addColumnTitle'),
     onclick: () => ctx.addColumn(),
   }));
   const thead = el('thead');

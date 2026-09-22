@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { openHarness, selectColumn, columnHeader, panelTab, field, fieldInput, checkOption, segmentedOption, setColor } from './helpers.js';
+import { openHarness, selectColumn, seedColumn, columnHeader, panelTab, field, fieldInput, checkOption, segmentedOption, setColor } from './helpers.js';
 
 test.describe('Column properties panel', () => {
   test.beforeEach(async ({ page }) => {
@@ -61,7 +61,35 @@ test.describe('Column properties panel', () => {
     expect(await page.evaluate(() => window.__builder.getDesign().columns[0].resizable)).toBe(false);
   });
 
+  test('Header, Font and Advanced tabs only appear once their properties are set', async ({ page }) => {
+    await selectColumn(page, 0);
+    await expect(panelTab(page, 'Header')).toHaveCount(0);
+    await expect(panelTab(page, 'Font')).toHaveCount(0);
+    await expect(panelTab(page, 'Advanced')).toHaveCount(0);
+    await expect(panelTab(page, 'Basics')).toBeVisible();
+    await expect(panelTab(page, 'Sort')).toBeVisible();
+    await expect(panelTab(page, 'Totals')).toBeVisible();
+
+    await seedColumn(page, 0, { header: { align: 'center' } });
+    await selectColumn(page, 0);
+    await expect(panelTab(page, 'Header')).toBeVisible();
+
+    await panelTab(page, 'Header').click();
+    await checkOption(page, 'Use column font').check();
+    await expect(panelTab(page, 'Font')).toBeVisible();
+
+    await seedColumn(page, 0, { programmaticName: 'seed' });
+    await selectColumn(page, 0);
+    await expect(panelTab(page, 'Advanced')).toBeVisible();
+
+    await panelTab(page, 'Advanced').click();
+    await fieldInput(page, 'Programmatic name').fill('');
+    await expect(panelTab(page, 'Advanced')).toHaveCount(0);
+    await expect(page.locator('#host .vb-tab-active')).toHaveText('Basics');
+  });
+
   test('Font tab: face, size, color and style affect the cells', async ({ page }) => {
+    await seedColumn(page, 0, { header: { useColumnFont: true } });
     await selectColumn(page, 0);
     await panelTab(page, 'Font').click();
 
@@ -88,6 +116,7 @@ test.describe('Column properties panel', () => {
   });
 
   test('Header tab: font, alignment and visibility of the header', async ({ page }) => {
+    await seedColumn(page, 0, { header: { italic: true } });
     await selectColumn(page, 0);
     await panelTab(page, 'Header').click();
 
@@ -157,6 +186,11 @@ test.describe('Column properties panel', () => {
   });
 
   test('Advanced tab: programmatic name and hide-when formula', async ({ page }) => {
+    await page.evaluate(() => {
+      const design = window.__builder.getDesign();
+      design.columns[0].programmaticName = 'seed';
+      window.__builder.setDesign(design);
+    });
     await selectColumn(page, 0);
     await panelTab(page, 'Advanced').click();
 
@@ -184,7 +218,7 @@ test.describe('Column properties panel', () => {
     await fieldInput(page, 'View style').selectOption('standard');
     await expect(page.locator('#host .vb-caption-info')).toContainText('4 columns');
     await expect(page.locator('#host .vb-panel')).toContainText('View selection formula');
-    await expect(page.locator('#host .vb-panel')).toContainText('Form formula');
+    await expect(page.locator('#host .vb-panel')).not.toContainText('Form formula');
   });
 
   test('active tab persists when another column is selected', async ({ page }) => {

@@ -1,12 +1,63 @@
 /* ViewBuilder styles - every selector is scoped to the component. */
 
+/* ==========================================================================
+   THEME TOKENS
+   All look and feel lives in this stylesheet. Override these variables (for
+   example from a host page: .vb-app { --vb-accent: #c00; }) to match your app.
+   Per-column widths and fonts are design data (edited in the panel and
+   serialized to XML), so those stay as inline styles on the preview cells.
+   ========================================================================== */
+
 :host {
   all: initial;
   display: block;
-  font-family: "Segoe UI", Tahoma, Verdana, Arial, sans-serif;
-  font-size: 12px;
-  line-height: 1.4;
-  color: #222;
+
+  /* typography */
+  --vb-font-family: "Segoe UI", Tahoma, Verdana, Arial, sans-serif;
+  --vb-mono-font-family: Consolas, "Courier New", monospace;
+  --vb-font-size: 12px;
+  --vb-font-size-small: 11px;
+  --vb-line-height: 1.4;
+  --vb-text-color: #222;
+  --vb-muted-color: #777;
+
+  /* accent / selection */
+  --vb-accent: #2f6fb5;
+  --vb-accent-dark: #1a4f8a;
+  --vb-accent-light: #4a90d9;
+  --vb-accent-tint: rgba(47, 111, 181, 0.13);
+  --vb-accent-tint-strong: rgba(47, 111, 181, 0.2);
+  --vb-accent-tint-soft: rgba(47, 111, 181, 0.09);
+  --vb-selected-bg: #dcebfb;
+  --vb-selected-bg-2: #bcd8f5;
+  --vb-danger: #a02020;
+  --vb-success: #2e7d32;
+
+  /* surfaces */
+  --vb-surface: #fff;
+  --vb-surface-alt: #f6f6f6;
+  --vb-canvas-bg: #e8e8e8;
+  --vb-row-alt: #f6f6f6;
+  --vb-row-hover: #eef5fd;
+  --vb-grid-line: #ececec;
+
+  /* borders */
+  --vb-border: #a9a9a9;
+  --vb-border-strong: #9d9d9d;
+  --vb-border-light: #d5d5d5;
+  --vb-radius: 3px;
+
+  /* metrics */
+  --vb-panel-width: 300px;
+  --vb-row-height: 21px;
+  --vb-header-height: 23px;
+  --vb-dialog-width: 560px;
+  --vb-dialog-width-lg: 680px;
+
+  font-family: var(--vb-font-family);
+  font-size: var(--vb-font-size);
+  line-height: var(--vb-line-height);
+  color: var(--vb-text-color);
 }
 
 .vb-app,
@@ -17,10 +68,10 @@
 }
 
 .vb-app {
-  font-family: "Segoe UI", Tahoma, Verdana, Arial, sans-serif;
-  font-size: 12px;
-  line-height: 1.4;
-  color: #222;
+  font-family: var(--vb-font-family);
+  font-size: var(--vb-font-size);
+  line-height: var(--vb-line-height);
+  color: var(--vb-text-color);
   text-align: left;
   letter-spacing: normal;
   word-spacing: normal;
@@ -34,8 +85,8 @@
   flex-direction: column;
   height: 100%;
   min-height: 480px;
-  background: #fff;
-  border: 1px solid #a9a9a9;
+  background: var(--vb-surface);
+  border: 1px solid var(--vb-border);
   overflow: hidden;
 }
 
@@ -88,7 +139,7 @@
 }
 
 .vb-btn-primary {
-  background: linear-gradient(#4d92d8, #2f6fb5);
+  background: linear-gradient(#4d92d8, var(--vb-accent));
   border-color: #2a5f9e;
   color: #fff;
   font-weight: 600;
@@ -99,7 +150,22 @@
 }
 
 .vb-btn-danger {
-  color: #a02020;
+  color: var(--vb-danger);
+}
+
+.vb-btn-active {
+  background: linear-gradient(var(--vb-selected-bg), var(--vb-selected-bg-2));
+  border-color: var(--vb-accent);
+  color: var(--vb-accent-dark);
+  font-weight: 600;
+}
+
+.vb-btn-active:hover:not([disabled]) {
+  background: linear-gradient(var(--vb-selected-bg), var(--vb-selected-bg-2));
+}
+
+.vb-hidden {
+  display: none !important;
 }
 
 /* --- layout ------------------------------------------------------------- */
@@ -132,7 +198,7 @@
 .vb-caption-name {
   font-size: 12px;
   font-weight: 600;
-  color: #1a4f8a;
+  color: var(--vb-accent-dark);
 }
 
 .vb-caption-alias {
@@ -149,7 +215,7 @@
   min-height: 0;
   overflow: auto;
   padding: 12px;
-  background: #e8e8e8;
+  background: var(--vb-canvas-bg);
 }
 
 .vb-status {
@@ -197,15 +263,15 @@
   border-collapse: separate;
   border-spacing: 0;
   table-layout: fixed;
-  background: #fff;
-  border: 1px solid #9d9d9d;
+  background: var(--vb-surface);
+  border: 1px solid var(--vb-border-strong);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
-  font-size: 12px;
+  font-size: var(--vb-font-size);
 }
 
 .vb-th {
   position: relative;
-  height: 23px;
+  height: var(--vb-header-height);
   padding: 0 6px;
   background: linear-gradient(#fdfdfd, #e6e6e6);
   border-right: 1px solid #c9c9c9;
@@ -220,8 +286,8 @@
 }
 
 .vb-th.vb-selected {
-  background: linear-gradient(#dcebfb, #bcd8f5);
-  box-shadow: inset 0 2px 0 #2f6fb5;
+  background: linear-gradient(var(--vb-selected-bg), var(--vb-selected-bg-2));
+  box-shadow: inset 0 2px 0 var(--vb-accent);
 }
 
 .vb-th.vb-dragging {
@@ -229,19 +295,19 @@
 }
 
 .vb-th.vb-drop-before {
-  box-shadow: inset 2px 0 0 #2f6fb5;
+  box-shadow: inset 2px 0 0 var(--vb-accent);
 }
 
 .vb-th.vb-drop-after {
-  box-shadow: inset -2px 0 0 #2f6fb5;
+  box-shadow: inset -2px 0 0 var(--vb-accent);
 }
 
 .vb-th.vb-selected.vb-drop-before {
-  box-shadow: inset 0 2px 0 #2f6fb5, inset 2px 0 0 #2f6fb5;
+  box-shadow: inset 0 2px 0 var(--vb-accent), inset 2px 0 0 var(--vb-accent);
 }
 
 .vb-th.vb-selected.vb-drop-after {
-  box-shadow: inset 0 2px 0 #2f6fb5, inset -2px 0 0 #2f6fb5;
+  box-shadow: inset 0 2px 0 var(--vb-accent), inset -2px 0 0 var(--vb-accent);
 }
 
 .vb-th-hidden {
@@ -266,7 +332,7 @@
 .vb-sort-arrow {
   margin-left: 4px;
   font-size: 9px;
-  color: #2f6fb5;
+  color: var(--vb-accent);
   vertical-align: middle;
 }
 
@@ -287,7 +353,7 @@
   top: 2px;
   bottom: 2px;
   width: 1px;
-  background: #2f6fb5;
+  background: var(--vb-accent);
 }
 
 .vb-th-add {
@@ -301,14 +367,14 @@
 
 .vb-th-add:hover {
   background: #e2e2e2;
-  color: #2f6fb5;
+  color: var(--vb-accent);
 }
 
 .vb-td {
-  height: 21px;
+  height: var(--vb-row-height);
   padding: 0 6px;
-  border-right: 1px solid #ececec;
-  border-bottom: 1px solid #ececec;
+  border-right: 1px solid var(--vb-grid-line);
+  border-bottom: 1px solid var(--vb-grid-line);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -329,23 +395,23 @@
 }
 
 .vb-alt-rows tbody tr.vb-row-odd td.vb-td {
-  background: #f6f6f6;
+  background: var(--vb-row-alt);
 }
 
 .vb-alt-rows tbody tr.vb-row-odd td.vb-col-selected {
-  background: rgba(47, 111, 181, 0.13);
+  background: var(--vb-accent-tint);
 }
 
 tbody tr:hover td.vb-td {
-  background: #eef5fd;
+  background: var(--vb-row-hover);
 }
 
 tbody tr:hover td.vb-col-selected {
-  background: rgba(47, 111, 181, 0.2);
+  background: var(--vb-accent-tint-strong);
 }
 
 td.vb-col-selected {
-  background: rgba(47, 111, 181, 0.09);
+  background: var(--vb-accent-tint-soft);
 }
 
 .vb-td-add {
@@ -392,10 +458,10 @@ td.vb-col-selected {
 /* --- right properties panel --------------------------------------------- */
 
 .vb-panel {
-  width: 300px;
-  min-width: 300px;
+  width: var(--vb-panel-width);
+  min-width: var(--vb-panel-width);
   border-left: 1px solid #c2c2c2;
-  background: #f6f6f6;
+  background: var(--vb-surface-alt);
   overflow: auto;
 }
 
@@ -408,7 +474,7 @@ td.vb-col-selected {
 .vb-panel-title {
   font-size: 12px;
   font-weight: 600;
-  color: #1a4f8a;
+  color: var(--vb-accent-dark);
 }
 
 .vb-panel-sub {
@@ -447,9 +513,9 @@ td.vb-col-selected {
 
 .vb-tab-active {
   background: #fff;
-  color: #1a4f8a;
+  color: var(--vb-accent-dark);
   font-weight: 600;
-  box-shadow: inset 0 -2px 0 #2f6fb5;
+  box-shadow: inset 0 -2px 0 var(--vb-accent);
 }
 
 .vb-tab-body {
@@ -483,8 +549,8 @@ td.vb-col-selected {
 .vb-input:focus,
 .vb-select:focus,
 .vb-textarea:focus {
-  outline: 1px solid #4a90d9;
-  border-color: #4a90d9;
+  outline: 1px solid var(--vb-accent-light);
+  border-color: var(--vb-accent-light);
 }
 
 .vb-textarea {
@@ -536,12 +602,24 @@ td.vb-col-selected {
 }
 
 .vb-radio-active {
-  background: #2f6fb5;
+  background: var(--vb-accent);
   color: #fff;
 }
 
 .vb-radio-active:hover {
-  background: #2f6fb5;
+  background: var(--vb-accent);
+}
+
+.vb-radio-bold {
+  font-weight: 700;
+}
+
+.vb-radio-italic {
+  font-style: italic;
+}
+
+.vb-radio-underline {
+  text-decoration: underline;
 }
 
 .vb-formula-row {
@@ -587,6 +665,10 @@ td.vb-col-selected {
   align-items: flex-start;
 }
 
+.vb-mt {
+  margin-top: 8px;
+}
+
 .vb-inline > .vb-field {
   flex: 1 1 auto;
 }
@@ -609,6 +691,62 @@ td.vb-col-selected {
   cursor: pointer;
 }
 
+/* --- xml editor mode ---------------------------------------------------- */
+
+.vb-xml-editor {
+  display: none;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+  padding: 8px;
+  background: var(--vb-canvas-bg);
+}
+
+.vb-xml-editor.vb-xml-open {
+  display: flex;
+}
+
+.vb-xml-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.vb-xml-status {
+  margin-left: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--vb-muted-color);
+}
+
+.vb-xml-status-ok {
+  color: var(--vb-success);
+}
+
+.vb-xml-status-error {
+  color: var(--vb-danger);
+  font-weight: 600;
+}
+
+.vb-xml-editor-input {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  padding: 8px;
+  border: 1px solid var(--vb-border);
+  background: var(--vb-surface);
+  color: var(--vb-text-color);
+  font-family: var(--vb-mono-font-family);
+  font-size: 11px;
+  white-space: pre;
+  overflow: auto;
+  resize: none;
+}
+
 /* --- dialogs ------------------------------------------------------------ */
 
 .vb-overlay {
@@ -622,10 +760,10 @@ td.vb-col-selected {
   align-items: center;
   justify-content: center;
   background: rgba(0, 0, 0, 0.35);
-  font-family: "Segoe UI", Tahoma, Verdana, Arial, sans-serif;
-  font-size: 12px;
-  line-height: 1.4;
-  color: #222;
+  font-family: var(--vb-font-family);
+  font-size: var(--vb-font-size);
+  line-height: var(--vb-line-height);
+  color: var(--vb-text-color);
   text-align: left;
   letter-spacing: normal;
   word-spacing: normal;
@@ -640,13 +778,17 @@ td.vb-col-selected {
 .vb-dialog {
   display: flex;
   flex-direction: column;
-  width: 560px;
+  width: var(--vb-dialog-width);
   max-width: 92vw;
   max-height: 85vh;
   background: #f5f5f5;
   border: 1px solid #8a8a8a;
   border-radius: 4px;
   box-shadow: 0 10px 34px rgba(0, 0, 0, 0.4);
+}
+
+.vb-dialog-lg {
+  width: var(--vb-dialog-width-lg);
 }
 
 .vb-dialog-header {
@@ -672,7 +814,7 @@ td.vb-col-selected {
 }
 
 .vb-dialog-close:hover {
-  color: #a02020;
+  color: var(--vb-danger);
 }
 
 .vb-dialog-body {
@@ -728,14 +870,14 @@ td.vb-col-selected {
   border: 1px solid #b8c9dd;
   border-radius: 10px;
   background: #eef4fb;
-  color: #1a4f8a;
+  color: var(--vb-accent-dark);
   font-family: inherit;
   font-size: 11px;
   cursor: pointer;
 }
 
 .vb-chip:hover {
-  background: #dcebfb;
+  background: var(--vb-selected-bg);
 }
 
 .vb-chip-fn {
@@ -752,5 +894,5 @@ td.vb-col-selected {
   min-height: 14px;
   margin-top: 6px;
   font-size: 11px;
-  color: #a02020;
+  color: var(--vb-danger);
 }

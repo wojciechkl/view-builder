@@ -83,24 +83,24 @@ test.describe('Formula editing', () => {
     expect(await page.evaluate(() => window.__builder.getDesign().columns[0].formula)).toBe('Subject');
   });
 
-  test('view selection and form formulas are editable from the view panel', async ({ page }) => {
+  test('view selection formula is editable from the view panel', async ({ page }) => {
     await page.locator('#host .vb-canvas').click({ position: { x: 760, y: 420 } });
     await expect(page.locator('#host .vb-panel')).toContainText('View selection formula');
+    await expect(page.locator('#host .vb-panel')).not.toContainText('Form formula');
 
     await formulaButton(page, 0).click();
     await expect(page.locator('#host .vb-dialog-header span').first()).toHaveText('View selection formula');
     await page.locator('#host .vb-formula-input').fill('SELECT Form = "Memo"');
     await page.locator('#host .vb-dialog-footer .vb-btn').filter({ hasText: 'OK' }).click();
     expect(await page.evaluate(() => window.__builder.getDesign().selectionFormula)).toBe('SELECT Form = "Memo"');
-
-    await formulaButton(page, 1).click();
-    await expect(page.locator('#host .vb-dialog-header span').first()).toHaveText('Form formula');
-    await page.locator('#host .vb-formula-input').fill('@If(Status = "Open"; "OpenDoc"; "ClosedDoc")');
-    await page.locator('#host .vb-dialog-footer .vb-btn').filter({ hasText: 'OK' }).click();
-    expect(await page.evaluate(() => window.__builder.getDesign().formFormula)).toBe('@If(Status = "Open"; "OpenDoc"; "ClosedDoc")');
   });
 
   test('hide-when formula is stored and exported', async ({ page }) => {
+    await page.evaluate(() => {
+      const design = window.__builder.getDesign();
+      design.columns[1].programmaticName = 'seed';
+      window.__builder.setDesign(design);
+    });
     await selectColumn(page, 1);
     await panelTab(page, 'Advanced').click();
     await page.locator('#host .vb-formula-row .vb-btn').click();

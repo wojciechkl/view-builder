@@ -1,6 +1,7 @@
 import { el } from './dom.js';
 
 export function openDialog(root, options) {
+  const t = options.t;
   const overlay = el('div', { class: 'vb-overlay', tabindex: '-1' });
 
   const close = () => {
@@ -9,10 +10,10 @@ export function openDialog(root, options) {
     if (options.onClose) options.onClose();
   };
 
-  const card = el('div', { class: 'vb-dialog', style: options.width ? { width: options.width } : null });
+  const card = el('div', { class: 'vb-dialog' + (options.size ? ' vb-dialog-' + options.size : '') });
   const header = el('div', { class: 'vb-dialog-header' }, [
     el('span', { text: options.title || '' }),
-    el('button', { type: 'button', class: 'vb-dialog-close', text: '\u2715', title: 'Close', onclick: close }),
+    el('button', { type: 'button', class: 'vb-dialog-close', text: '\u2715', title: t('common.close'), onclick: close }),
   ]);
   const body = el('div', { class: 'vb-dialog-body' }, [options.body]);
   const footer = el('div', { class: 'vb-dialog-footer' });
@@ -45,6 +46,7 @@ export function openDialog(root, options) {
 }
 
 export function openFormulaDialog(root, options) {
+  const t = options.t;
   const textarea = el('textarea', { class: 'vb-formula-input', spellcheck: 'false' });
   textarea.value = options.value || '';
 
@@ -58,27 +60,27 @@ export function openFormulaDialog(root, options) {
 
   const chips = el('div', { class: 'vb-chips' });
   for (const field of options.fields || []) {
-    chips.appendChild(el('button', { type: 'button', class: 'vb-chip', text: field, title: 'Insert field', onclick: () => insert(field) }));
+    chips.appendChild(el('button', { type: 'button', class: 'vb-chip', text: field, title: t('dialog.insertField'), onclick: () => insert(field) }));
   }
   for (const fn of options.functions || []) {
-    chips.appendChild(el('button', { type: 'button', class: 'vb-chip vb-chip-fn', text: fn, title: 'Insert @function', onclick: () => insert(fn) }));
+    chips.appendChild(el('button', { type: 'button', class: 'vb-chip vb-chip-fn', text: fn, title: t('dialog.insertFunction'), onclick: () => insert(fn) }));
   }
 
   const body = el('div', {}, [
-    el('div', { class: 'vb-hint', text: options.hint || 'Domino formula language. Click a field or function below to insert it at the cursor.' }),
+    el('div', { class: 'vb-hint', text: options.hint || t('dialog.formulaHint') }),
     chips,
     textarea,
   ]);
 
   openDialog(root, {
+    t: t,
     title: options.title,
-    width: '560px',
     body,
     focus: () => textarea.focus(),
     buttons: [
-      { label: 'Cancel', onClick: (close) => close() },
+      { label: t('common.cancel'), onClick: (close) => close() },
       {
-        label: 'OK',
+        label: t('common.ok'),
         primary: true,
         onClick: (close) => {
           options.onSave(textarea.value);
@@ -100,57 +102,61 @@ function downloadText(filename, text) {
 }
 
 export function openExportDialog(root, options) {
+  const t = options.t;
   const textarea = el('textarea', { class: 'vb-xml-input', readonly: 'readonly', spellcheck: 'false' });
   textarea.value = options.xml;
-  const status = el('div', { class: 'vb-hint', text: 'This is the serialized design. Copy it or download it as an .xml file.' });
+  const status = el('div', { class: 'vb-hint', text: t('dialog.exportHint') });
 
   const body = el('div', {}, [status, textarea]);
 
   openDialog(root, {
-    title: 'Export view design as XML',
-    width: '680px',
+    t: t,
+    title: t('dialog.exportTitle'),
+    size: 'lg',
     body,
     focus: () => textarea.focus(),
     buttons: [
-      { label: 'Download .xml', onClick: () => downloadText(options.filename || 'view.xml', options.xml) },
+      { label: t('dialog.downloadXml'), onClick: () => downloadText(options.filename || 'view.xml', options.xml) },
       {
-        label: 'Copy to clipboard',
+        label: t('dialog.copyClipboard'),
         primary: true,
         onClick: () => {
           textarea.focus();
           textarea.select();
           try {
             const ok = document.execCommand('copy');
-            status.textContent = ok ? 'Copied to clipboard.' : 'Selection ready - press Ctrl+C to copy.';
+            status.textContent = ok ? t('dialog.copied') : t('dialog.selectionReady');
           } catch (error) {
-            status.textContent = 'Selection ready - press Ctrl+C to copy.';
+            status.textContent = t('dialog.selectionReady');
           }
         },
       },
-      { label: 'Close', onClick: (close) => close() },
+      { label: t('common.close'), onClick: (close) => close() },
     ],
   });
 }
 
 export function openImportDialog(root, options) {
+  const t = options.t;
   const textarea = el('textarea', { class: 'vb-xml-input', spellcheck: 'false' });
   textarea.placeholder = '<view name="MyView">\n  <columns>\n    <column ...>...</column>\n  </columns>\n</view>';
   const error = el('div', { class: 'vb-error' });
   const body = el('div', {}, [
-    el('div', { class: 'vb-hint', text: 'Paste a view design XML produced by this editor or a Domino DXL export.' }),
+    el('div', { class: 'vb-hint', text: t('dialog.importHint') }),
     textarea,
     error,
   ]);
 
   openDialog(root, {
-    title: 'Import view design from XML',
-    width: '680px',
+    t: t,
+    title: t('dialog.importTitle'),
+    size: 'lg',
     body,
     focus: () => textarea.focus(),
     buttons: [
-      { label: 'Cancel', onClick: (close) => close() },
+      { label: t('common.cancel'), onClick: (close) => close() },
       {
-        label: 'Load design',
+        label: t('dialog.loadDesign'),
         primary: true,
         onClick: (close) => {
           try {
