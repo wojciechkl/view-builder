@@ -31,7 +31,7 @@ export const FONT_FACES = [
 ];
 
 export const FONT_STACKS = {
-  default: '"Segoe UI", Tahoma, Verdana, Arial, sans-serif',
+  default: 'Roboto, "Segoe UI", Tahoma, Verdana, Arial, sans-serif',
   helvetica: 'Helvetica, Arial, sans-serif',
   arial: 'Arial, Helvetica, sans-serif',
   times: '"Times New Roman", Times, serif',
@@ -75,6 +75,13 @@ export const DATE_FORMATS = [
 
 export const VIEW_STYLES = [
   { value: 'standard', labelKey: 'option.viewStyle.standard' },
+];
+
+export const WIDTH_UNITS = [
+  { value: 'px', labelKey: 'option.widthUnit.px' },
+  { value: '%', labelKey: 'option.widthUnit.percent' },
+  { value: 'em', labelKey: 'option.widthUnit.em' },
+  { value: 'rem', labelKey: 'option.widthUnit.rem' },
 ];
 
 export const DEFAULT_FONT = {
@@ -133,6 +140,8 @@ export function createColumn(overrides) {
     type: 'text',
     align: 'left',
     width: 110,
+    widthUnit: 'px',
+    autoWidth: false,
     resizable: true,
     multiValueSeparator: ', ',
     font: defaultFont(),
@@ -140,6 +149,7 @@ export function createColumn(overrides) {
     sort: 'none',
     sortType: 'text',
     clickToSort: true,
+    categorized: false,
     totals: 'none',
     hideDetailRows: false,
     numberFormat: 'general',

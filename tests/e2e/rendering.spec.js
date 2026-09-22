@@ -21,7 +21,7 @@ test.describe('WYSIWYG rendering', () => {
     await expect(page.locator('#host tbody .vb-row-even, #host tbody .vb-row-odd')).toHaveCount(12);
   });
 
-  test('renders headers with the Domino-style beveled look and add cell', async ({ page }) => {
+  test('renders headers with the app look and an add cell', async ({ page }) => {
     await expect(page.locator('#host .vb-th-title')).toHaveCount(4);
     await expect(page.locator('#host .vb-th-add')).toHaveCount(1);
     await expect(columnHeader(page, 0)).toHaveClass(/vb-selected/);
@@ -53,7 +53,7 @@ test.describe('WYSIWYG rendering', () => {
       const s = getComputedStyle(el);
       return { family: s.fontFamily, size: parseFloat(s.fontSize) };
     });
-    expect(font.family).toContain('Segoe UI');
+    expect(font.family).toContain('Roboto');
     expect(font.size).toBeGreaterThan(11);
   });
 
@@ -63,7 +63,7 @@ test.describe('WYSIWYG rendering', () => {
 
     const oddBg = await page.locator('#host tbody tr.vb-row-odd td.vb-td').nth(1).evaluate((el) => getComputedStyle(el).backgroundColor);
     const evenBg = await page.locator('#host tbody tr.vb-row-even td.vb-td').nth(1).evaluate((el) => getComputedStyle(el).backgroundColor);
-    expect(oddBg).toBe('rgb(246, 246, 246)');
+    expect(oddBg).toBe('rgb(250, 250, 250)');
     expect(oddBg).not.toBe(evenBg);
 
     await page.locator('#host .vb-canvas').click({ position: { x: 760, y: 420 } });
@@ -118,5 +118,54 @@ test.describe('WYSIWYG rendering', () => {
     await page.locator('#host .vb-field').filter({ hasText: 'View name' }).locator('input').fill('MyCustomView');
     await expect(page.locator('#host .vb-caption-name')).toHaveText('MyCustomView');
     await expect(page.locator('#host .vb-status')).toContainText('MyCustomView');
+  });
+
+  test('categorized column renders expandable category rows', async ({ page }) => {
+    await page.evaluate(() => {
+      const design = window.__builder.getDesign();
+      design.columns[0].formula = 'Status';
+      design.columns[0].categorized = true;
+      design.columns[0].sort = 'ascending';
+      window.__builder.setDesign(design);
+    });
+
+    const rows = page.locator('#host .vb-category-row');
+    await expect(rows).toHaveCount(3);
+    expect(await page.locator('#host .vb-category-value').allTextContents()).toEqual(['Closed', 'Open', 'Pending']);
+    await expect(page.locator('#host tbody tr')).toHaveCount(15);
+
+    const firstDetailRow = page.locator('#host tbody tr.vb-row-even').first();
+    await expect(firstDetailRow.locator('td').first().locator('.vb-cell-text')).toHaveCount(0);
+
+    const twistie = rows.first().locator('.vb-twistie');
+    await expect(twistie).toHaveText('▼');
+    await twistie.click();
+    await expect(twistie).toHaveText('▶');
+    await expect(page.locator('#host tbody tr')).toHaveCount(11);
+    await twistie.click();
+    await expect(page.locator('#host tbody tr')).toHaveCount(15);
+
+    await page.locator('#host .vb-category-value').first().click();
+    await expect(page.locator('#host .vb-status-hint')).toHaveText('Selected: column 1 (Subject)');
+  });
+
+  test('nested categorized columns render sub-categories with deeper indentation', async ({ page }) => {
+    await page.evaluate(() => {
+      const design = window.__builder.getDesign();
+      design.columns[0].formula = 'Status';
+      design.columns[0].categorized = true;
+      design.columns[0].sort = 'ascending';
+      design.columns[1].formula = 'Status';
+      design.columns[1].categorized = true;
+      design.columns[1].sort = 'ascending';
+      window.__builder.setDesign(design);
+    });
+
+    await expect(page.locator('#host .vb-category-row')).toHaveCount(6);
+    const levels = await page.locator('#host .vb-category-cell').evaluateAll((cells) =>
+      cells.map((cell) => cell.style.getPropertyValue('--vb-cat-level'))
+    );
+    expect(levels).toEqual(['0', '1', '0', '1', '0', '1']);
+    await expect(page.locator('#host tbody tr')).toHaveCount(18);
   });
 });

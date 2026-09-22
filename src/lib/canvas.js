@@ -52,9 +52,11 @@ function renderHeaderCell(column, index, ctx) {
     th.classList.add('vb-th-hidden');
   }
 
-  const handle = el('div', { class: 'vb-resize', title: t('canvas.resizeTitle') });
-  handle.addEventListener('mousedown', (e) => ctx.beginResize(e, column, th));
-  th.appendChild(handle);
+  if (column.resizable && !column.autoWidth && column.widthUnit === 'px') {
+    const handle = el('div', { class: 'vb-resize', title: t('canvas.resizeTitle') });
+    handle.addEventListener('mousedown', (e) => ctx.beginResize(e, column, th));
+    th.appendChild(handle);
+  }
 
   th.addEventListener('click', () => ctx.select(column.id));
   th.addEventListener('dblclick', () => ctx.editFormula());
@@ -92,21 +94,93 @@ function renderHeaderCell(column, index, ctx) {
   return th;
 }
 
-function renderRow(design, rowIndex, ctx) {
+function renderRow(design, rowIndex, ctx, blankIndexes) {
   const row = SAMPLE_ROWS[rowIndex % SAMPLE_ROWS.length];
   const tr = el('tr', { class: rowIndex % 2 ? 'vb-row-odd' : 'vb-row-even' });
-  for (const column of design.columns) {
-    const cell = formatCell(column, row, rowIndex);
+  for (let index = 0; index < design.columns.length; index += 1) {
+    const column = design.columns[index];
     const selected = column.id === ctx.selectedId;
     const td = el('td', { class: 'vb-td vb-align-' + column.align + (selected ? ' vb-col-selected' : '') });
     applyFont(td, column.font);
-    if (cell.icon) td.appendChild(el('span', { class: 'vb-note-icon vb-note-icon-' + cell.icon }));
-    td.appendChild(el('span', { class: 'vb-cell-text', text: cell.text }));
+    if (!blankIndexes || blankIndexes.indexOf(index) < 0) {
+      const cell = formatCell(column, row, rowIndex);
+      if (cell.icon) td.appendChild(el('span', { class: 'vb-note-icon vb-note-icon-' + cell.icon }));
+      td.appendChild(el('span', { class: 'vb-cell-text', text: cell.text }));
+    }
     td.addEventListener('click', () => ctx.select(column.id));
     tr.appendChild(td);
   }
   tr.appendChild(el('td', { class: 'vb-td vb-td-add' }));
   return tr;
+}
+
+function compareCategoryValues(a, b, column) {
+  if (column.sortType === 'number') {
+    const na = parseFloat(String(a).replace(/[^0-9.eE+-]/g, ''));
+    const nb = parseFloat(String(b).replace(/[^0-9.eE+-]/g, ''));
+    if (isFinite(na) && isFinite(nb) && na !== nb) return na - nb;
+  }
+  return String(a).localeCompare(String(b));
+}
+
+function buildCategoryTree(entries, design, indexes, level, prefix) {
+  const column = design.columns[indexes[level]];
+  const groups = [];
+  const byValue = new Map();
+  for (const entry of entries) {
+    const value = formatCell(column, entry.row, entry.index).text;
+    let group = byValue.get(value);
+    if (!group) {
+      group = { value: value, key: prefix + '\u0001' + value, rows: [] };
+      byValue.set(value, group);
+      groups.push(group);
+    }
+    group.rows.push(entry);
+  }
+  groups.sort((a, b) => compareCategoryValues(a.value, b.value, column));
+  for (const group of groups) {
+    group.children = level + 1 < indexes.length
+      ? buildCategoryTree(group.rows, design, indexes, level + 1, group.key)
+      : null;
+  }
+  return groups;
+}
+
+function renderCategoryRow(design, group, level, index, ctx) {
+  const t = ctx.t;
+  const column = design.columns[index];
+  const selected = column.id === ctx.selectedId;
+  const collapsed = ctx.isCategoryCollapsed(group.key);
+  const tr = el('tr', { class: 'vb-category-row' });
+  for (let c = 0; c < index; c += 1) tr.appendChild(el('td', { class: 'vb-td' }));
+  const td = el('td', { class: 'vb-td vb-align-' + column.align + ' vb-category-cell' + (selected ? ' vb-col-selected' : '') });
+  td.style.setProperty('--vb-cat-level', String(level));
+  applyFont(td, column.font);
+  const twistie = el('span', {
+    class: 'vb-twistie',
+    text: collapsed ? '\u25B6' : '\u25BC',
+    title: collapsed ? t('canvas.expand') : t('canvas.collapse'),
+  });
+  twistie.addEventListener('click', (e) => {
+    e.stopPropagation();
+    ctx.toggleCategory(group.key);
+  });
+  td.appendChild(twistie);
+  td.appendChild(el('span', { class: 'vb-category-value', text: group.value }));
+  td.addEventListener('click', () => ctx.select(column.id));
+  tr.appendChild(td);
+  for (let c = index + 1; c < design.columns.length; c += 1) tr.appendChild(el('td', { class: 'vb-td' }));
+  tr.appendChild(el('td', { class: 'vb-td vb-td-add' }));
+  return tr;
+}
+
+function renderCategoryGroups(tbody, design, groups, level, indexes, ctx) {
+  for (const group of groups) {
+    tbody.appendChild(renderCategoryRow(design, group, level, indexes[level], ctx));
+    if (ctx.isCategoryCollapsed(group.key)) continue;
+    if (group.children) renderCategoryGroups(tbody, design, group.children, level + 1, indexes, ctx);
+    else for (const entry of group.rows) tbody.appendChild(renderRow(design, entry.index, ctx, indexes));
+  }
 }
 
 function renderTotalsRow(design, ctx) {
@@ -147,15 +221,18 @@ export function renderCanvas(host, ctx) {
   }
 
   const table = el('table', { class: 'vb-view' + (design.alternateRows ? ' vb-alt-rows' : '') });
+  const exactWidth = design.columns.every((c) => !c.autoWidth && c.widthUnit === 'px');
   let totalWidth = ADD_COL_WIDTH;
   const colgroup = el('colgroup');
   for (const column of design.columns) {
-    colgroup.appendChild(el('col', { dataset: { id: column.id }, style: { width: column.width + 'px' } }));
+    const col = el('col', { dataset: { id: column.id } });
+    if (!column.autoWidth) col.style.width = column.width + column.widthUnit;
+    colgroup.appendChild(col);
     totalWidth += column.width;
   }
   colgroup.appendChild(el('col', { style: { width: ADD_COL_WIDTH + 'px' } }));
   table.appendChild(colgroup);
-  table.style.width = totalWidth + 'px';
+  table.style.width = exactWidth ? totalWidth + 'px' : '100%';
 
   const headRow = el('tr');
   design.columns.forEach((column, index) => headRow.appendChild(renderHeaderCell(column, index, ctx)));
@@ -170,9 +247,20 @@ export function renderCanvas(host, ctx) {
   table.appendChild(thead);
 
   const hideDetails = design.columns.some((c) => c.totals !== 'none' && c.hideDetailRows);
+  const categoryIndexes = [];
+  design.columns.forEach((column, index) => {
+    if (column.categorized) categoryIndexes.push(index);
+  });
   const tbody = el('tbody');
   if (!hideDetails) {
-    for (let r = 0; r < SAMPLE_ROW_COUNT; r += 1) tbody.appendChild(renderRow(design, r, ctx));
+    if (categoryIndexes.length) {
+      const entries = [];
+      for (let r = 0; r < SAMPLE_ROW_COUNT; r += 1) entries.push({ row: SAMPLE_ROWS[r % SAMPLE_ROWS.length], index: r });
+      const groups = buildCategoryTree(entries, design, categoryIndexes, 0, '');
+      renderCategoryGroups(tbody, design, groups, 0, categoryIndexes, ctx);
+    } else {
+      for (let r = 0; r < SAMPLE_ROW_COUNT; r += 1) tbody.appendChild(renderRow(design, r, ctx));
+    }
   }
   table.appendChild(tbody);
 

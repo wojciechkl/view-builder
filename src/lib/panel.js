@@ -1,7 +1,8 @@
 import { el, clear, applyFont } from './dom.js';
 import {
   COLUMN_TYPES, ALIGN_OPTIONS, FONT_FACES, SORT_MODES, SORT_TYPES,
-  TOTAL_MODES, NUMBER_FORMATS, DATE_FORMATS, VIEW_STYLES, isDefaultFont, isDefaultHeader,
+  TOTAL_MODES, NUMBER_FORMATS, DATE_FORMATS, VIEW_STYLES, WIDTH_UNITS,
+  isDefaultFont, isDefaultHeader,
 } from './model.js';
 
 const TABS = [
@@ -31,7 +32,7 @@ function columnTabs(column) {
 function field(label, control, hint) {
   const wrap = el('div', { class: 'vb-field' });
   if (label) wrap.appendChild(el('label', { class: 'vb-label', text: label }));
-  wrap.appendChild(control);
+  if (control) wrap.appendChild(control);
   if (hint) wrap.appendChild(el('div', { class: 'vb-hint', text: hint }));
   return wrap;
 }
@@ -219,9 +220,20 @@ function basicsTab(body, ctx, column) {
   body.appendChild(field(t('field.showAs'), selectInput(column.type, COLUMN_TYPES, (v) => ctx.update((c) => { c.type = v; }, { panel: true }), t)));
 
   const widthRow = el('div', { class: 'vb-inline' });
-  widthRow.appendChild(field(t('field.width'), numberInput(column.width, (v) => ctx.update((c) => { c.width = v; }), { min: 24, max: 2000, dataset: { prop: 'width' } })));
-  widthRow.appendChild(field(t('common.options'), checkboxInput(column.resizable, t('check.resizable'), (v) => ctx.update((c) => { c.resizable = v; }))));
+  const widthInput = numberInput(column.width, (v) => ctx.update((c) => { c.width = v; }), { min: 24, max: 2000, dataset: { prop: 'width' } });
+  widthInput.disabled = column.autoWidth;
+  widthRow.appendChild(field(t('field.width'), widthInput));
+  const unitSelect = selectInput(column.widthUnit, WIDTH_UNITS, (v) => ctx.update((c) => { c.widthUnit = v; }), t);
+  unitSelect.disabled = column.autoWidth;
+  widthRow.appendChild(field(t('field.widthUnit'), unitSelect));
   body.appendChild(widthRow);
+
+  const optionsField = field(t('common.options'));
+  optionsField.appendChild(checkboxInput(column.autoWidth, t('check.autoWidth'), (v) => ctx.update((c) => { c.autoWidth = v; }, { panel: true })));
+  const resizableBox = checkboxInput(column.resizable, t('check.resizable'), (v) => ctx.update((c) => { c.resizable = v; }));
+  if (column.autoWidth) resizableBox.querySelector('input').disabled = true;
+  optionsField.appendChild(resizableBox);
+  body.appendChild(optionsField);
 
   body.appendChild(field(t('field.alignment'), segmented(column.align, ALIGN_OPTIONS, (v) => ctx.update((c) => { c.align = v; }, { panel: true }), t)));
   body.appendChild(field(t('field.multiValueSeparator'), textInput(column.multiValueSeparator, (v) => ctx.update((c) => { c.multiValueSeparator = v; }))));
@@ -259,10 +271,29 @@ function headerTab(body, ctx, column) {
 
 function sortTab(body, ctx, column) {
   const t = ctx.t;
-  body.appendChild(field(t('tab.sort'), selectInput(column.sort, SORT_MODES, (v) => ctx.update((c) => { c.sort = v; }), t)));
+  body.appendChild(field(t('tab.sort'), selectInput(column.sort, SORT_MODES, (v) => ctx.update((c) => {
+    c.sort = v;
+    if (v !== 'ascending') c.categorized = false;
+  }, { panel: true }), t)));
   body.appendChild(field(t('field.sortType'), selectInput(column.sortType, SORT_TYPES, (v) => ctx.update((c) => { c.sortType = v; }), t)));
-  body.appendChild(field(t('common.options'), checkboxInput(column.clickToSort, t('check.clickToSort'), (v) => ctx.update((c) => { c.clickToSort = v; }))));
+
+  const options = field(t('common.options'));
+  const categorized = checkboxInput(column.categorized, t('check.categorized'), (v) => ctx.update((c) => {
+    c.categorized = v;
+    if (v) {
+      c.sort = 'ascending';
+      c.clickToSort = false;
+    }
+  }, { panel: true }));
+  categorized.querySelector('input').disabled = column.sort !== 'ascending';
+  options.appendChild(categorized);
+  const clickToSort = checkboxInput(column.clickToSort, t('check.clickToSort'), (v) => ctx.update((c) => { c.clickToSort = v; }));
+  clickToSort.querySelector('input').disabled = column.categorized;
+  options.appendChild(clickToSort);
+  body.appendChild(options);
+
   body.appendChild(el('div', { class: 'vb-hint', text: t('hint.sort') }));
+  if (column.categorized) body.appendChild(el('div', { class: 'vb-hint', text: t('hint.categorized') }));
 }
 
 function totalsTab(body, ctx, column) {

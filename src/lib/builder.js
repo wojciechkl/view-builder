@@ -23,6 +23,7 @@ export class ViewBuilder {
     this.tab = 'basics';
     this.mode = 'design';
     this._dragId = null;
+    this._collapsed = new Set();
     this._destroyed = false;
     this._xmlTimer = null;
     this._xmlAppliedText = '';
@@ -229,6 +230,16 @@ export class ViewBuilder {
     this._render();
   }
 
+  isCategoryCollapsed(key) {
+    return this._collapsed.has(key);
+  }
+
+  toggleCategory(key) {
+    if (this._collapsed.has(key)) this._collapsed.delete(key);
+    else this._collapsed.add(key);
+    this._renderCanvasOnly();
+  }
+
   setTab(tab) {
     if (this.tab === tab) return;
     this.tab = tab;
@@ -305,6 +316,7 @@ export class ViewBuilder {
     this.design = design;
     this.selectedId = design.columns.length ? design.columns[0].id : null;
     this.tab = 'basics';
+    this._collapsed.clear();
     this._xmlAppliedText = text;
     const count = design.columns.length;
     this._setXmlStatus('ok', count === 1 ? this.t('xml.appliedOne') : this.t('xml.appliedMany', { n: count }));
@@ -384,6 +396,7 @@ export class ViewBuilder {
   }
 
   beginResize(event, column, headerCell) {
+    if (column.autoWidth || column.widthUnit !== 'px' || !column.resizable) return;
     event.preventDefault();
     event.stopPropagation();
     const startX = event.clientX;
@@ -401,9 +414,14 @@ export class ViewBuilder {
       headerCell.style.width = width + 'px';
       if (widthInput) widthInput.value = width;
       if (table) {
-        let total = 30;
-        for (const c of this.design.columns) total += c.width;
-        table.style.width = total + 'px';
+        const exactWidth = this.design.columns.every((c) => !c.autoWidth && c.widthUnit === 'px');
+        if (exactWidth) {
+          let total = 30;
+          for (const c of this.design.columns) total += c.width;
+          table.style.width = total + 'px';
+        } else {
+          table.style.width = '100%';
+        }
       }
     };
     const onUp = () => {
@@ -525,6 +543,7 @@ export class ViewBuilder {
   setDesign(design) {
     this.design = cloneDesign(design);
     this.selectedId = this.design.columns.length ? this.design.columns[0].id : null;
+    this._collapsed.clear();
     this._render();
     if (this.mode === 'xml') this.reloadXmlText();
     this._notify();

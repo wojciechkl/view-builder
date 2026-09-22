@@ -75,7 +75,7 @@ test.describe('Column operations', () => {
 
   test('resizes a column by dragging its resize handle and syncs the panel', async ({ page }) => {
     await selectColumn(page, 0);
-    await expect(fieldInput(page, 'Width (px)')).toHaveValue('210');
+    await expect(fieldInput(page, 'Width')).toHaveValue('210');
 
     const handle = columnHeader(page, 0).locator('.vb-resize');
     const box = await handle.boundingBox();
@@ -84,7 +84,7 @@ test.describe('Column operations', () => {
     await page.mouse.move(box.x + box.width / 2 + 60, box.y + box.height / 2, { steps: 6 });
     await page.mouse.up();
 
-    await expect(fieldInput(page, 'Width (px)')).toHaveValue('270');
+    await expect(fieldInput(page, 'Width')).toHaveValue('270');
     expect(await page.evaluate(() => window.__builder.getDesign().columns[0].width)).toBe(270);
   });
 

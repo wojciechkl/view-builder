@@ -17,13 +17,55 @@ test.describe('Column properties panel', () => {
     await fieldInput(page, 'Title').fill('');
     await expect(page.locator('#host .vb-th').nth(0).locator('.vb-th-title')).toHaveClass(/vb-th-placeholder/);
 
-    await fieldInput(page, 'Width (px)').fill('300');
+    await fieldInput(page, 'Width').fill('300');
     expect(await page.evaluate(() => window.__builder.getDesign().columns[0].width)).toBe(300);
     const colWidth = await page.evaluate(() => {
       const scope = document.querySelector('#host').shadowRoot;
       return scope.querySelectorAll('col')[0].style.width;
     });
     expect(colWidth).toBe('300px');
+  });
+
+  test('Basics: width supports units and an automatic mode', async ({ page }) => {
+    await selectColumn(page, 0);
+    const widthField = field(page, 'Width');
+    const unitField = field(page, 'Unit');
+    await expect(widthField.locator('input')).toBeEnabled();
+    await expect(unitField.locator('select')).toHaveValue('px');
+
+    await unitField.locator('select').selectOption('%');
+    expect(await page.evaluate(() => window.__builder.getDesign().columns[0].widthUnit)).toBe('%');
+    let colWidth = await page.evaluate(() => document.querySelector('#host').shadowRoot.querySelectorAll('col')[0].style.width);
+    expect(colWidth).toBe('210%');
+    expect(await page.evaluate(() => document.querySelector('#host').shadowRoot.querySelector('.vb-view').style.width)).toBe('100%');
+
+    await checkOption(page, 'Automatic width (fit to content)').check();
+    await expect(widthField.locator('input')).toBeDisabled();
+    await expect(unitField.locator('select')).toBeDisabled();
+    await expect(columnHeader(page, 0).locator('.vb-resize')).toHaveCount(0);
+    expect(await page.evaluate(() => window.__builder.getDesign().columns[0].autoWidth)).toBe(true);
+    colWidth = await page.evaluate(() => document.querySelector('#host').shadowRoot.querySelectorAll('col')[0].style.width);
+    expect(colWidth).toBe('');
+
+    const xml = await page.evaluate(() => window.__builder.getXml());
+    expect(xml).toContain('autowidth="true"');
+    expect(xml).toContain('widthunit="%"');
+    expect(xml).not.toContain('width="210"');
+
+    const roundTrip = await page.evaluate(() => {
+      const back = window.ViewBuilder.deserialize(window.__builder.getXml());
+      return { unit: back.columns[0].widthUnit, auto: back.columns[0].autoWidth };
+    });
+    expect(roundTrip.unit).toBe('%');
+    expect(roundTrip.auto).toBe(true);
+
+    await checkOption(page, 'Automatic width (fit to content)').uncheck();
+    await expect(widthField.locator('input')).toBeEnabled();
+    await expect(unitField.locator('select')).toBeEnabled();
+    expect(await page.evaluate(() => window.__builder.getDesign().columns[0].autoWidth)).toBe(false);
+
+    await unitField.locator('select').selectOption('px');
+    await expect(columnHeader(page, 0).locator('.vb-resize')).toHaveCount(1);
   });
 
   test('Basics: alignment segmented control aligns the cells', async ({ page }) => {
@@ -156,6 +198,31 @@ test.describe('Column properties panel', () => {
 
     await checkOption(page, 'Click on column header to sort').uncheck();
     expect(await page.evaluate(() => window.__builder.getDesign().columns[0].clickToSort)).toBe(false);
+  });
+
+  test('Sort tab: categorized forces ascending sort and disables click-to-sort', async ({ page }) => {
+    await selectColumn(page, 1);
+    await panelTab(page, 'Sort').click();
+    await expect(checkOption(page, 'Categorized')).toBeDisabled();
+
+    await selectColumn(page, 0);
+    await panelTab(page, 'Sort').click();
+    await checkOption(page, 'Categorized').check();
+
+    expect(await page.evaluate(() => {
+      const c = window.__builder.getDesign().columns[0];
+      return { categorized: c.categorized, sort: c.sort, clickToSort: c.clickToSort };
+    })).toEqual({ categorized: true, sort: 'ascending', clickToSort: false });
+    await expect(checkOption(page, 'Click on column header to sort')).toBeDisabled();
+    await expect(page.locator('#host .vb-panel')).toContainText('categorized column groups documents');
+
+    const xml = await page.evaluate(() => window.__builder.getXml());
+    expect(xml).toContain('categorized="true"');
+    expect(await page.evaluate((value) => window.ViewBuilder.deserialize(value).columns[0].categorized, xml)).toBe(true);
+
+    await fieldInput(page, 'Sort').selectOption('none');
+    expect(await page.evaluate(() => window.__builder.getDesign().columns[0].categorized)).toBe(false);
+    await expect(checkOption(page, 'Categorized')).toBeDisabled();
   });
 
   test('Totals tab: every total mode computes the right value', async ({ page }) => {

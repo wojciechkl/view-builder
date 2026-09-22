@@ -40,6 +40,8 @@ export default {
   'canvas.sortedAscending': 'Sortowane rosnąco',
   'canvas.sortedDescending': 'Sortowane malejąco',
   'canvas.resizeTitle': 'Przeciągnij, aby zmienić szerokość',
+  'canvas.expand': 'Rozwiń kategorię',
+  'canvas.collapse': 'Zwiń kategorię',
 
   'tab.basics': 'Podstawowe',
   'tab.font': 'Czcionka',
@@ -50,7 +52,8 @@ export default {
 
   'field.title': 'Tytuł',
   'field.showAs': 'Pokaż jako',
-  'field.width': 'Szerokość (px)',
+  'field.width': 'Szerokość',
+  'field.widthUnit': 'Jednostka',
   'field.alignment': 'Wyrównanie',
   'field.multiValueSeparator': 'Separator wartości wielokrotnych',
   'field.numberFormat': 'Format liczby',
@@ -68,14 +71,17 @@ export default {
 
   'check.hideColumnHeader': 'Ukryj nagłówek kolumny',
   'check.useColumnFont': 'Użyj czcionki kolumny',
+  'check.autoWidth': 'Szerokość automatyczna (dopasuj do zawartości)',
   'check.resizable': 'Zmiana szerokości',
   'check.clickToSort': 'Sortuj po kliknięciu nagłówka kolumny',
+  'check.categorized': 'Kategoryzowana',
   'check.hideDetailRows': 'Ukryj wiersze szczegółów',
 
   'hint.basicsTabs': 'Karty Nagłówek, Czcionka i Zaawansowane pojawiają się, gdy odpowiednie właściwości są ustawione - możesz je też edytować bezpośrednio w trybie Edytora XML.',
   'hint.columnFormula': 'Formuła obliczająca wartość kolumny. Kliknij dwukrotnie nagłówek kolumny w podglądzie, aby ją edytować.',
   'hint.columnFontShared': 'Wspólna czcionka kolumny jest edytowana na karcie Czcionka.',
   'hint.sort': 'Posortowane kolumny pokazują strzałkę w nagłówku podglądu. Tylko pierwsza posortowana kolumna jest używana przez Domino jako sortowanie główne.',
+  'hint.categorized': 'Kolumna kategoryzowana grupuje dokumenty w rozwijane sekcje. Sortowanie jest wymuszane jako rosnące, a sortowanie po kliknięciu jest wyłączone.',
   'hint.totals': 'Sumy są obliczane na przykładowych dokumentach i pokazywane w wierszu stopki podglądu.',
   'hint.hideWhen': 'Formuła ukrywania: kolumna jest ukryta, gdy ta formuła zwraca True.',
   'hint.embedding': 'Użyj ViewBuilder.mount(host, { design: ViewBuilder.deserialize(xml) }), aby osadzić ten edytor na stronie XPages.',
@@ -157,4 +163,8 @@ export default {
   'option.dateFormat.long': 'Długa data',
   'option.dateFormat.time': 'Data i czas',
   'option.viewStyle.standard': 'Standardowy',
+  'option.widthUnit.px': 'px',
+  'option.widthUnit.percent': '%',
+  'option.widthUnit.em': 'em',
+  'option.widthUnit.rem': 'rem',
 };

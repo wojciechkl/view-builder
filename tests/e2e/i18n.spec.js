@@ -98,5 +98,10 @@ test.describe('language awareness', () => {
 
     await expect(toolbarButton(page, 'Edytor XML')).toBeVisible();
     await expect(page.locator('#host .vb-toolbar .vb-btn').filter({ hasText: 'Eksportuj XML' })).toBeVisible();
+
+    await page.locator('#host .vb-tab').filter({ hasText: 'Sortowanie' }).click();
+    await page.locator('#host .vb-field').filter({ hasText: 'Sortowanie' }).locator('select').selectOption('ascending');
+    await page.locator('#host .vb-check').filter({ hasText: 'Kategoryzowana' }).locator('input').check();
+    await expect(page.locator('#host .vb-panel')).toContainText('Kolumna kategoryzowana grupuje dokumenty');
   });
 });

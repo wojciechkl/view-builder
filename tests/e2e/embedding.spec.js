@@ -13,14 +13,14 @@ test.describe('XPages embedding', () => {
       return { bg: s.backgroundColor, bgImage: s.backgroundImage, letterSpacing: s.letterSpacing };
     });
     expect(button.bg).not.toBe('rgb(255, 165, 0)');
-    expect(button.bgImage).toContain('linear-gradient');
+    expect(button.bgImage).toBe('none');
     expect(button.letterSpacing).toBe('normal');
 
     const cell = await page.locator('#vb tbody .vb-td').first().evaluate((el) => {
       const s = getComputedStyle(el);
       return { family: s.fontFamily, lineHeight: s.lineHeight, borderWidth: s.borderTopWidth, borderColor: s.borderTopColor };
     });
-    expect(cell.family).toContain('Segoe UI');
+    expect(cell.family).toContain('Roboto');
     expect(cell.family).not.toContain('Comic Sans');
     expect(cell.lineHeight).toBe('16.8px');
     expect(cell.borderWidth).not.toBe('3px');

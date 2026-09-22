@@ -44,12 +44,15 @@ test.describe('XML serialization', () => {
     expect(xml).not.toContain('<font');
     expect(xml).not.toContain('resizable=');
     expect(xml).not.toContain('clicktosort=');
+    expect(xml).not.toContain('categorized=');
     expect(xml).not.toContain('hidedetailrows=');
     expect(xml).not.toContain('multivalueseparator=');
     expect(xml).not.toContain('numberformat="general"');
     expect(xml).not.toContain('dateformat="default"');
     expect(xml).not.toContain('sort="none"');
     expect(xml).not.toContain('showas="text"');
+    expect(xml).not.toContain('widthunit=');
+    expect(xml).not.toContain('autowidth=');
   });
 
   test('non-default fonts and advanced values are serialized partially', async ({ page }) => {
@@ -104,7 +107,7 @@ test.describe('XML serialization', () => {
     });
     await selectColumn(page, 0);
     await fieldInput(page, 'Title').fill('Doc & Subject');
-    await fieldInput(page, 'Width (px)').fill('321');
+    await fieldInput(page, 'Width').fill('321');
     await page.locator('#host .vb-tab').filter({ hasText: 'Sort' }).click();
     await fieldInput(page, 'Sort type').selectOption('number');
     await page.locator('#host .vb-tab').filter({ hasText: 'Advanced' }).click();

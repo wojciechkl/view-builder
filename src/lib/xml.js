@@ -50,13 +50,16 @@ function fontXml(font, level, base) {
 function columnXml(column, level) {
   const pad = indent(level);
   const attrs = [];
-  if (column.width !== COLUMN_DEFAULTS.width) attrs.push('width="' + esc(column.width) + '"');
+  if (!column.autoWidth && column.width !== COLUMN_DEFAULTS.width) attrs.push('width="' + esc(column.width) + '"');
+  if (column.widthUnit !== COLUMN_DEFAULTS.widthUnit) attrs.push('widthunit="' + esc(column.widthUnit) + '"');
+  if (column.autoWidth !== COLUMN_DEFAULTS.autoWidth) attrs.push('autowidth="' + bool(column.autoWidth) + '"');
   if (column.resizable !== COLUMN_DEFAULTS.resizable) attrs.push('resizable="' + bool(column.resizable) + '"');
   if (column.align !== COLUMN_DEFAULTS.align) attrs.push('align="' + esc(column.align) + '"');
   if (column.type !== COLUMN_DEFAULTS.type) attrs.push('showas="' + esc(column.type) + '"');
   if (column.sort !== COLUMN_DEFAULTS.sort) attrs.push('sort="' + esc(column.sort) + '"');
   if (column.sortType !== COLUMN_DEFAULTS.sortType) attrs.push('sorttype="' + esc(column.sortType) + '"');
   if (column.clickToSort !== COLUMN_DEFAULTS.clickToSort) attrs.push('clicktosort="' + bool(column.clickToSort) + '"');
+  if (column.categorized !== COLUMN_DEFAULTS.categorized) attrs.push('categorized="' + bool(column.categorized) + '"');
   if (column.totals !== COLUMN_DEFAULTS.totals) attrs.push('totals="' + esc(column.totals) + '"');
   if (column.hideDetailRows !== COLUMN_DEFAULTS.hideDetailRows) attrs.push('hidedetailrows="' + bool(column.hideDetailRows) + '"');
   if (column.multiValueSeparator !== COLUMN_DEFAULTS.multiValueSeparator) attrs.push('multivalueseparator="' + esc(column.multiValueSeparator) + '"');
@@ -164,12 +167,15 @@ function parseFont(node, fallback) {
 function parseColumn(node) {
   const column = createColumn({ id: uid('col') });
   column.width = numAttr(node, 'width', column.width);
+  column.widthUnit = attr(node, 'widthunit', column.widthUnit);
+  column.autoWidth = boolAttr(node, 'autowidth', column.autoWidth);
   column.resizable = boolAttr(node, 'resizable', column.resizable);
   column.align = attr(node, 'align', column.align);
   column.type = attr(node, 'showas', column.type);
   column.sort = attr(node, 'sort', column.sort);
   column.sortType = attr(node, 'sorttype', column.sortType);
   column.clickToSort = boolAttr(node, 'clicktosort', column.clickToSort);
+  column.categorized = boolAttr(node, 'categorized', column.categorized);
   column.totals = attr(node, 'totals', column.totals);
   column.hideDetailRows = boolAttr(node, 'hidedetailrows', column.hideDetailRows);
   column.multiValueSeparator = attr(node, 'multivalueseparator', column.multiValueSeparator);

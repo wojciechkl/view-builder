@@ -40,6 +40,8 @@ export default {
   'canvas.sortedAscending': 'Sorted ascending',
   'canvas.sortedDescending': 'Sorted descending',
   'canvas.resizeTitle': 'Drag to resize',
+  'canvas.expand': 'Expand category',
+  'canvas.collapse': 'Collapse category',
 
   'tab.basics': 'Basics',
   'tab.font': 'Font',
@@ -50,7 +52,8 @@ export default {
 
   'field.title': 'Title',
   'field.showAs': 'Show as',
-  'field.width': 'Width (px)',
+  'field.width': 'Width',
+  'field.widthUnit': 'Unit',
   'field.alignment': 'Alignment',
   'field.multiValueSeparator': 'Multi-value separator',
   'field.numberFormat': 'Number format',
@@ -68,14 +71,17 @@ export default {
 
   'check.hideColumnHeader': 'Hide column header',
   'check.useColumnFont': 'Use column font',
+  'check.autoWidth': 'Automatic width (fit to content)',
   'check.resizable': 'Resizable',
   'check.clickToSort': 'Click on column header to sort',
+  'check.categorized': 'Categorized',
   'check.hideDetailRows': 'Hide detail rows',
 
   'hint.basicsTabs': 'Header, Font and Advanced tabs appear only once those properties are set - or edit them directly in XML Editor mode.',
   'hint.columnFormula': 'Formula that computes the column value. Double-click the column header in the preview to edit it.',
   'hint.columnFontShared': 'The shared column font is edited on the Font tab.',
   'hint.sort': 'Sorted columns show an arrow in the preview header. Only the first sorted column is used by Domino as the primary sort.',
+  'hint.categorized': 'A categorized column groups documents into expandable sections. Sorting is forced to ascending and click-to-sort is disabled.',
   'hint.totals': 'Totals are calculated over the sample documents and shown in the footer row of the preview.',
   'hint.hideWhen': 'Hide-when formula: the column is hidden when this formula evaluates to True.',
   'hint.embedding': 'Use ViewBuilder.mount(host, { design: ViewBuilder.deserialize(xml) }) to embed this editor in an XPages page.',
@@ -157,4 +163,8 @@ export default {
   'option.dateFormat.long': 'Long date',
   'option.dateFormat.time': 'Date and time',
   'option.viewStyle.standard': 'Standard',
+  'option.widthUnit.px': 'px',
+  'option.widthUnit.percent': '%',
+  'option.widthUnit.em': 'em',
+  'option.widthUnit.rem': 'rem',
 };
