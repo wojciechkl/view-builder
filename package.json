@@ -1,0 +1,22 @@
+{
+  "name": "domino-view-builder",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Pure-JS Domino Designer style view editor with XML serialization, embeddable in XPages",
+  "scripts": {
+    "dev": "vite",
+    "app": "npm run build && vite --open /tests/fixtures/xpages.html",
+    "app:harness": "npm run build && vite --open /tests/fixtures/harness.html",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "playwright test",
+    "test:e2e": "npm run build && playwright test",
+    "test:e2e:headed": "npm run build && playwright test --headed",
+    "test:report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "vite": "^5.4.0"
+  }
+}

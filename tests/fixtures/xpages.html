@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>XPages-like host page</title>
+<style>
+  /* Deliberately hostile global styles, similar to a complex XPages/OneUI app. */
+  * {
+    font-family: "Comic Sans MS", cursive !important;
+    box-sizing: content-box !important;
+    letter-spacing: 2px !important;
+  }
+  table, td, th { border: 3px solid rgb(255, 0, 0) !important; }
+  button { background: rgb(255, 165, 0) !important; border-radius: 20px !important; }
+  input, textarea, select { background-color: rgb(255, 192, 203) !important; color: purple !important; }
+  div { line-height: 3 !important; }
+  .xspView { width: 1180px; height: 680px; }
+</style>
+</head>
+<body>
+<form id="xspForm" action="#" method="post">
+  <button id="xspSubmit" type="submit">Submit (host app)</button>
+  <div id="vb" class="xspView" data-view-builder></div>
+</form>
+
+<script>
+  window.__submitted = 0;
+  document.getElementById('xspForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    window.__submitted += 1;
+  });
+</script>
+<script src="../../dist/view-builder.js"></script>
+</body>
+</html>

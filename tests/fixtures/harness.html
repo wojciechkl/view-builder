@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ViewBuilder E2E harness</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #fff; }
+  #host, #host2 { width: 1180px; height: 680px; }
+  #autoHost, #autoXmlHost { width: 1180px; height: 680px; }
+  .spacer { height: 8px; }
+</style>
+</head>
+<body>
+<div id="host"></div>
+<div id="host2"></div>
+<div id="autoHost" data-view-builder></div>
+<div id="autoXmlHost" data-view-builder data-xml="autoXml"></div>
+
+<script type="text/xml" id="autoXml">
+<view name="AutoXmlView" alias="vAuto" style="standard" alternaterows="false">
+  <code event="selection">SELECT Form = "Memo"</code>
+  <columns>
+    <column width="150" resizable="true" align="left" showas="text" sort="ascending" sorttype="text" clicktosort="true" totals="none" hidedetailrows="false" multivalueseparator=", " numberformat="general" dateformat="default" programmaticname="DocSubject">
+      <columnheader hidden="false" align="left" usecolumnfont="false">
+        <font face="default" size="9pt" color="#111111" bold="true" italic="false" underline="false"/>
+        <code event="header">DocSubject</code>
+      </columnheader>
+      <font face="default" size="9pt" color="#111111" bold="false" italic="false" underline="false"/>
+      <code event="value">Subject</code>
+    </column>
+  </columns>
+</view>
+</script>
+
+<script src="../../dist/view-builder.js"></script>
+<script>
+  window.__changes = [];
+  window.__events = [];
+  window.__builder = null;
+
+  window.mountBuilder = function (options) {
+    var host = document.getElementById('host');
+    var opts = Object.assign({}, options || {});
+    var userChange = opts.onChange;
+    opts.onChange = function (design) {
+      window.__changes.push(design);
+      if (userChange) userChange(design);
+    };
+    var builder = window.ViewBuilder.mount(host, opts);
+    window.__builder = builder;
+    host.addEventListener('viewbuilder:change', function (e) {
+      window.__events.push(e.detail.design.name);
+    });
+    return builder;
+  };
+
+  window.mountBuilder2 = function (options) {
+    return window.ViewBuilder.mount('#host2', options || {});
+  };
+</script>
+</body>
+</html>
