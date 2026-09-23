@@ -34,6 +34,19 @@
   read-only mode. Hosts that keep the view name and alias in their own
   persistent fields can read them from the component when saving.
 
+  Property change events: subscribe with builder.on('propertychange', fn)
+  (remove with builder.off). Every design property edit emits an event with
+  { phase, property, path, value, previous, columnId, columnIndex, design }:
+    phase 'input'  - intermediate, while typing, dragging a width or picking
+                     a color; suitable for live two-way binding
+    phase 'commit' - on blur / select change / checkbox toggle, when a formula
+                     dialog is saved, or when setViewName / setViewAlias is
+                     called from the host; suitable for persisting the value
+  path looks like 'columns.0.title' (columnId/columnIndex identify the column)
+  or 'name' for view-level properties. The same event bubbles on the host
+  element as the DOM CustomEvent 'viewbuilder:propertychange'
+  (e.detail carries the same object). No events are emitted in read-only mode.
+
   View attributes:
     style="standard"                        default standard (only style available)
     alternateRows="true"                    default true
