@@ -18,6 +18,7 @@ export class ViewBuilder {
     this.options = options || {};
     this.language = resolveLanguage(this.options.language);
     this.t = createTranslator(this.language);
+    this.readonly = !!this.options.readonly;
     this.design = this.options.design ? cloneDesign(this.options.design) : createDesign();
     this.selectedId = this.design.columns.length ? this.design.columns[0].id : null;
     this.tab = 'basics';
@@ -176,13 +177,19 @@ export class ViewBuilder {
   }
 
   _updateToolbar() {
+    const t = this.t;
     const column = this.getSelectedColumn();
     const index = column ? this.design.columns.indexOf(column) : -1;
     const xmlMode = this.mode === 'xml';
-    this.btnAdd.disabled = xmlMode;
-    this.btnDelete.disabled = xmlMode || !column;
-    this.btnLeft.disabled = xmlMode || index <= 0;
-    this.btnRight.disabled = xmlMode || index < 0 || index >= this.design.columns.length - 1;
+    const ro = this.readonly;
+    this.btnAdd.disabled = xmlMode || ro;
+    this.btnDelete.disabled = xmlMode || ro || !column;
+    this.btnLeft.disabled = xmlMode || ro || index <= 0;
+    this.btnRight.disabled = xmlMode || ro || index < 0 || index >= this.design.columns.length - 1;
+    this.btnXmlMode.disabled = ro;
+    this.btnImport.disabled = ro;
+    this.btnXmlMode.title = ro ? t('status.readonly') : (xmlMode ? t('toolbar.designViewTitle') : t('toolbar.xmlEditorTitle'));
+    this.btnImport.title = ro ? t('status.readonly') : '';
   }
 
   _updateStatus() {
@@ -195,6 +202,7 @@ export class ViewBuilder {
     this.status.appendChild(el('span', { text: t('status.sampleRows', { n: SAMPLE_ROW_COUNT }) }));
     let hint;
     if (this.mode === 'xml') hint = t('status.xmlHint');
+    else if (this.readonly) hint = t('status.readonly');
     else if (column) hint = t('status.selected', { n: index + 1 }) + (column.title ? ' (' + column.title + ')' : '');
     else hint = t('status.selectHint');
     this.status.appendChild(el('span', { class: 'vb-status-hint', text: hint }));
@@ -260,6 +268,29 @@ export class ViewBuilder {
     return this.language;
   }
 
+  // Read-only mode: the design can still be selected and inspected (and
+  // exported), but no UI interaction can change it.
+  setReadonly(value) {
+    const next = !!value;
+    if (next === this.readonly) return this;
+    if (next && this.mode === 'xml') {
+      clearTimeout(this._xmlTimer);
+      if (!this.applyXmlText()) this.reloadXmlText();
+      this.mode = 'design';
+      this.main.classList.remove('vb-hidden');
+      this.xmlEditor.classList.remove('vb-xml-open');
+      this.btnXmlMode.classList.remove('vb-btn-active');
+      this._applyStaticTexts();
+    }
+    this.readonly = next;
+    this._render();
+    return this;
+  }
+
+  getReadonly() {
+    return this.readonly;
+  }
+
   // -- XML editor mode -----------------------------------------------------
 
   toggleXmlMode() {
@@ -267,6 +298,7 @@ export class ViewBuilder {
   }
 
   setMode(mode) {
+    if (this.readonly) return;
     const next = mode === 'xml' ? 'xml' : 'design';
     if (this.mode === next) return;
     clearTimeout(this._xmlTimer);
@@ -344,6 +376,7 @@ export class ViewBuilder {
   // -- column operations ---------------------------------------------------
 
   addColumn() {
+    if (this.readonly) return;
     const column = createColumn({ title: '' });
     const selected = this.getSelectedColumn();
     const index = selected ? this.design.columns.indexOf(selected) + 1 : this.design.columns.length;
@@ -355,6 +388,7 @@ export class ViewBuilder {
   }
 
   removeSelectedColumn() {
+    if (this.readonly) return;
     const column = this.getSelectedColumn();
     if (!column) return;
     const index = this.design.columns.indexOf(column);
@@ -366,6 +400,7 @@ export class ViewBuilder {
   }
 
   moveSelected(direction) {
+    if (this.readonly) return;
     const column = this.getSelectedColumn();
     if (!column) return;
     const index = this.design.columns.indexOf(column);
@@ -378,6 +413,7 @@ export class ViewBuilder {
   }
 
   reorderColumns(dragId, targetId, before) {
+    if (this.readonly) return;
     if (!dragId || dragId === targetId) return;
     const columns = this.design.columns;
     const from = columns.findIndex((c) => c.id === dragId);
@@ -396,6 +432,7 @@ export class ViewBuilder {
   }
 
   beginResize(event, column, headerCell) {
+    if (this.readonly) return;
     if (column.autoWidth || column.widthUnit !== 'px' || !column.resizable) return;
     event.preventDefault();
     event.stopPropagation();
@@ -438,6 +475,7 @@ export class ViewBuilder {
   // -- property updates ----------------------------------------------------
 
   update(mutator, options) {
+    if (this.readonly) return;
     const column = this.getSelectedColumn();
     if (!column) return;
     mutator(column);
@@ -448,6 +486,7 @@ export class ViewBuilder {
   }
 
   updateDesign(mutator, options) {
+    if (this.readonly) return;
     mutator(this.design);
     this._renderCanvasOnly();
     if (options && options.panel) renderPanel(this.panelWrap, this);
@@ -469,6 +508,7 @@ export class ViewBuilder {
   }
 
   editFormula() {
+    if (this.readonly) return;
     const column = this.getSelectedColumn();
     if (!column) return;
     const index = this.design.columns.indexOf(column);
@@ -481,6 +521,7 @@ export class ViewBuilder {
   }
 
   editHideWhen() {
+    if (this.readonly) return;
     const column = this.getSelectedColumn();
     if (!column) return;
     this._openFormula(
@@ -492,6 +533,7 @@ export class ViewBuilder {
   }
 
   editSelectionFormula() {
+    if (this.readonly) return;
     this._openFormula(
       this.t('formula.selectionTitle'),
       this.design.selectionFormula,
@@ -501,6 +543,7 @@ export class ViewBuilder {
   }
 
   editFormFormula() {
+    if (this.readonly) return;
     this._openFormula(
       this.t('formula.formTitle'),
       this.design.formFormula,
@@ -528,6 +571,7 @@ export class ViewBuilder {
   }
 
   importXml() {
+    if (this.readonly) return;
     openImportDialog(this.root, {
       t: this.t,
       onLoad: (xml) => this.setXml(xml),

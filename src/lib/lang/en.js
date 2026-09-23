@@ -31,6 +31,7 @@ export default {
   'status.xmlHint': 'XML editor - changes apply live',
   'status.selected': 'Selected: column {n}',
   'status.selectHint': 'Select a column header to edit its properties',
+  'status.readonly': 'Read-only - the design cannot be changed',
 
   'canvas.emptyTitle': 'This view has no columns',
   'canvas.emptyText': 'Add a column to start designing the view.',
@@ -72,6 +73,7 @@ export default {
   'check.hideColumnHeader': 'Hide column header',
   'check.useColumnFont': 'Use column font',
   'check.autoWidth': 'Automatic width (fit to content)',
+  'check.multipleValues': 'Show multiple values as separate entries',
   'check.resizable': 'Resizable',
   'check.clickToSort': 'Click on column header to sort',
   'check.categorized': 'Categorized',
@@ -108,7 +110,7 @@ export default {
   'dialog.copied': 'Copied to clipboard.',
   'dialog.selectionReady': 'Selection ready - press Ctrl+C to copy.',
   'dialog.importTitle': 'Import view design from XML',
-  'dialog.importHint': 'Paste a view design XML produced by this editor or a Domino DXL export.',
+  'dialog.importHint': 'Paste a view design XML (viewTemplate) produced by this editor.',
   'dialog.loadDesign': 'Load design',
 
   'xml.apply': 'Apply XML',

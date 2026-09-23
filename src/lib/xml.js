@@ -1,8 +1,9 @@
 import { createColumn, createDesign, uid, DEFAULT_FONT, DEFAULT_HEADER } from './model.js';
 
-// Serializes the design to a Domino-DXL-flavoured XML document.
-// Only values that differ from the model defaults are written, so the output
-// stays compact and can be round-tripped by deserialize().
+// Serializes the design to the viewTemplate XML format (see docs/view_spec.xml
+// and docs/view_full_spec.xml). Only values that differ from the model defaults
+// are written, so the output stays compact and can be round-tripped by
+// deserialize().
 
 const COLUMN_DEFAULTS = createColumn();
 const DESIGN_DEFAULTS = createDesign();
@@ -23,6 +24,10 @@ function indent(level) {
   return '  '.repeat(level);
 }
 
+function element(tag, value, level) {
+  return indent(level) + '<' + tag + '>' + esc(value) + '</' + tag + '>';
+}
+
 function sameColor(a, b) {
   return String(a).toLowerCase() === String(b).toLowerCase();
 }
@@ -40,51 +45,48 @@ function fontAttrs(font, base) {
   return attrs;
 }
 
-// The <font/> line, or null when the font matches the base font.
-function fontXml(font, level, base) {
+// A <font/> or <headerFont/> line, or null when the font matches the base font.
+function fontLine(tag, font, level, base) {
   const attrs = fontAttrs(font, base);
   if (!attrs.length) return null;
-  return indent(level) + '<font ' + attrs.join(' ') + '/>';
+  return indent(level) + '<' + tag + ' ' + attrs.join(' ') + '/>';
 }
 
 function columnXml(column, level) {
   const pad = indent(level);
   const attrs = [];
   if (!column.autoWidth && column.width !== COLUMN_DEFAULTS.width) attrs.push('width="' + esc(column.width) + '"');
-  if (column.widthUnit !== COLUMN_DEFAULTS.widthUnit) attrs.push('widthunit="' + esc(column.widthUnit) + '"');
-  if (column.autoWidth !== COLUMN_DEFAULTS.autoWidth) attrs.push('autowidth="' + bool(column.autoWidth) + '"');
+  if (column.widthUnit !== COLUMN_DEFAULTS.widthUnit) attrs.push('widthUnit="' + esc(column.widthUnit) + '"');
+  if (column.autoWidth !== COLUMN_DEFAULTS.autoWidth) attrs.push('autoWidth="' + bool(column.autoWidth) + '"');
   if (column.resizable !== COLUMN_DEFAULTS.resizable) attrs.push('resizable="' + bool(column.resizable) + '"');
   if (column.align !== COLUMN_DEFAULTS.align) attrs.push('align="' + esc(column.align) + '"');
-  if (column.type !== COLUMN_DEFAULTS.type) attrs.push('showas="' + esc(column.type) + '"');
-  if (column.sort !== COLUMN_DEFAULTS.sort) attrs.push('sort="' + esc(column.sort) + '"');
-  if (column.sortType !== COLUMN_DEFAULTS.sortType) attrs.push('sorttype="' + esc(column.sortType) + '"');
-  if (column.clickToSort !== COLUMN_DEFAULTS.clickToSort) attrs.push('clicktosort="' + bool(column.clickToSort) + '"');
+  if (column.type !== COLUMN_DEFAULTS.type) attrs.push('showAs="' + esc(column.type) + '"');
+  if (column.sort !== COLUMN_DEFAULTS.sort) attrs.push('sorted="true"');
+  if (column.sort === 'descending') attrs.push('sortDescending="true"');
+  if (column.sortType !== COLUMN_DEFAULTS.sortType) attrs.push('sortType="' + esc(column.sortType) + '"');
+  if (column.clickToSort !== COLUMN_DEFAULTS.clickToSort) attrs.push('clickToSort="' + bool(column.clickToSort) + '"');
   if (column.categorized !== COLUMN_DEFAULTS.categorized) attrs.push('categorized="' + bool(column.categorized) + '"');
   if (column.totals !== COLUMN_DEFAULTS.totals) attrs.push('totals="' + esc(column.totals) + '"');
-  if (column.hideDetailRows !== COLUMN_DEFAULTS.hideDetailRows) attrs.push('hidedetailrows="' + bool(column.hideDetailRows) + '"');
-  if (column.multiValueSeparator !== COLUMN_DEFAULTS.multiValueSeparator) attrs.push('multivalueseparator="' + esc(column.multiValueSeparator) + '"');
-  if (column.numberFormat !== COLUMN_DEFAULTS.numberFormat) attrs.push('numberformat="' + esc(column.numberFormat) + '"');
-  if (column.dateFormat !== COLUMN_DEFAULTS.dateFormat) attrs.push('dateformat="' + esc(column.dateFormat) + '"');
-  if (column.programmaticName) attrs.push('programmaticname="' + esc(column.programmaticName) + '"');
+  if (column.hideDetailRows !== COLUMN_DEFAULTS.hideDetailRows) attrs.push('hideDetailRows="' + bool(column.hideDetailRows) + '"');
+  if (column.multiValueSeparator !== COLUMN_DEFAULTS.multiValueSeparator) attrs.push('multiValueSeparator="' + esc(column.multiValueSeparator) + '"');
+  if (column.multipleValuesAsSeparateEntries !== COLUMN_DEFAULTS.multipleValuesAsSeparateEntries) {
+    attrs.push('multipleValuesAsSeparateEntries="' + bool(column.multipleValuesAsSeparateEntries) + '"');
+  }
+  if (column.numberFormat !== COLUMN_DEFAULTS.numberFormat) attrs.push('numberFormat="' + esc(column.numberFormat) + '"');
+  if (column.dateFormat !== COLUMN_DEFAULTS.dateFormat) attrs.push('dateFormat="' + esc(column.dateFormat) + '"');
+  if (column.header.hidden !== DEFAULT_HEADER.hidden) attrs.push('headerHidden="' + bool(column.header.hidden) + '"');
+  if (column.header.align !== DEFAULT_HEADER.align) attrs.push('headerAlign="' + esc(column.header.align) + '"');
+  if (column.header.useColumnFont !== DEFAULT_HEADER.useColumnFont) attrs.push('useColumnFont="' + bool(column.header.useColumnFont) + '"');
 
   const lines = [pad + '<column' + (attrs.length ? ' ' + attrs.join(' ') : '') + '>'];
-
-  const headerAttrs = [];
-  if (column.header.hidden) headerAttrs.push('hidden="' + bool(column.header.hidden) + '"');
-  if (column.header.align !== DEFAULT_HEADER.align) headerAttrs.push('align="' + esc(column.header.align) + '"');
-  if (column.header.useColumnFont) headerAttrs.push('usecolumnfont="' + bool(column.header.useColumnFont) + '"');
-  const headerFont = fontXml(column.header, level + 2, DEFAULT_HEADER);
-  if (headerAttrs.length || headerFont || column.title) {
-    lines.push(indent(level + 1) + '<columnheader' + (headerAttrs.length ? ' ' + headerAttrs.join(' ') : '') + '>');
-    if (headerFont) lines.push(headerFont);
-    if (column.title) lines.push(indent(level + 2) + '<code event="header">' + esc(column.title) + '</code>');
-    lines.push(indent(level + 1) + '</columnheader>');
-  }
-
-  const columnFont = fontXml(column.font, level + 1, DEFAULT_FONT);
+  if (column.title) lines.push(element('title', column.title, level + 1));
+  if (column.formula) lines.push(element('formula', column.formula, level + 1));
+  if (column.programmaticName) lines.push(element('programmaticName', column.programmaticName, level + 1));
+  if (column.hideWhen) lines.push(element('hideWhen', column.hideWhen, level + 1));
+  const columnFont = fontLine('font', column.font, level + 1, DEFAULT_FONT);
   if (columnFont) lines.push(columnFont);
-  if (column.formula) lines.push(indent(level + 1) + '<code event="value">' + esc(column.formula) + '</code>');
-  if (column.hideWhen) lines.push(indent(level + 1) + '<code event="hidewhen">' + esc(column.hideWhen) + '</code>');
+  const headerFont = fontLine('headerFont', column.header, level + 1, DEFAULT_HEADER);
+  if (headerFont) lines.push(headerFont);
   lines.push(pad + '</column>');
   return lines.join('\n');
 }
@@ -93,23 +95,19 @@ export function serialize(design) {
   const lines = [];
   lines.push('<?xml version="1.0" encoding="UTF-8"?>');
 
-  const viewAttrs = [];
-  if (design.name && design.name !== DESIGN_DEFAULTS.name) viewAttrs.push('name="' + esc(design.name) + '"');
-  if (design.alias) viewAttrs.push('alias="' + esc(design.alias) + '"');
-  if (design.style && design.style !== DESIGN_DEFAULTS.style) viewAttrs.push('style="' + esc(design.style) + '"');
-  if (design.alternateRows !== DESIGN_DEFAULTS.alternateRows) viewAttrs.push('alternaterows="' + bool(design.alternateRows) + '"');
-  lines.push('<view' + (viewAttrs.length ? ' ' + viewAttrs.join(' ') : '') + '>');
+  const attrs = [];
+  if (design.style && design.style !== DESIGN_DEFAULTS.style) attrs.push('style="' + esc(design.style) + '"');
+  if (design.alternateRows !== DESIGN_DEFAULTS.alternateRows) attrs.push('alternateRows="' + bool(design.alternateRows) + '"');
+  lines.push('<viewTemplate' + (attrs.length ? ' ' + attrs.join(' ') : '') + '>');
 
+  if (design.name && design.name !== DESIGN_DEFAULTS.name) lines.push(element('name', design.name, 1));
+  if (design.alias) lines.push(element('alias', design.alias, 1));
   if (design.selectionFormula && design.selectionFormula !== DESIGN_DEFAULTS.selectionFormula) {
-    lines.push(indent(1) + '<code event="selection">' + esc(design.selectionFormula) + '</code>');
+    lines.push(element('selectionFormula', design.selectionFormula, 1));
   }
-  if (design.formFormula) {
-    lines.push(indent(1) + '<code event="form">' + esc(design.formFormula) + '</code>');
-  }
-  lines.push(indent(1) + '<columns>');
-  for (const column of design.columns || []) lines.push(columnXml(column, 2));
-  lines.push(indent(1) + '</columns>');
-  lines.push('</view>');
+  if (design.formFormula) lines.push(element('formFormula', design.formFormula, 1));
+  for (const column of design.columns || []) lines.push(columnXml(column, 1));
+  lines.push('</viewTemplate>');
   return lines.join('\n') + '\n';
 }
 
@@ -144,12 +142,10 @@ function directChild(node, name) {
   return directChildren(node, name)[0] || null;
 }
 
-function codeEvent(node, event) {
-  const codes = directChildren(node, 'code');
-  for (const code of codes) {
-    if (code.getAttribute('event') === event) return code;
-  }
-  return null;
+// Text of a direct child element, or null when the element is not present.
+function childText(node, name) {
+  const child = directChild(node, name);
+  return child ? String(child.textContent || '').trim() : null;
 }
 
 function parseFont(node, fallback) {
@@ -167,45 +163,40 @@ function parseFont(node, fallback) {
 function parseColumn(node) {
   const column = createColumn({ id: uid('col') });
   column.width = numAttr(node, 'width', column.width);
-  column.widthUnit = attr(node, 'widthunit', column.widthUnit);
-  column.autoWidth = boolAttr(node, 'autowidth', column.autoWidth);
+  column.widthUnit = attr(node, 'widthUnit', column.widthUnit);
+  column.autoWidth = boolAttr(node, 'autoWidth', column.autoWidth);
   column.resizable = boolAttr(node, 'resizable', column.resizable);
   column.align = attr(node, 'align', column.align);
-  column.type = attr(node, 'showas', column.type);
-  column.sort = attr(node, 'sort', column.sort);
-  column.sortType = attr(node, 'sorttype', column.sortType);
-  column.clickToSort = boolAttr(node, 'clicktosort', column.clickToSort);
+  column.type = attr(node, 'showAs', column.type);
+  const sorted = boolAttr(node, 'sorted', false);
+  const sortDescending = boolAttr(node, 'sortDescending', false);
+  column.sort = !sorted ? 'none' : (sortDescending ? 'descending' : 'ascending');
+  column.sortType = attr(node, 'sortType', column.sortType);
+  column.clickToSort = boolAttr(node, 'clickToSort', column.clickToSort);
   column.categorized = boolAttr(node, 'categorized', column.categorized);
   column.totals = attr(node, 'totals', column.totals);
-  column.hideDetailRows = boolAttr(node, 'hidedetailrows', column.hideDetailRows);
-  column.multiValueSeparator = attr(node, 'multivalueseparator', column.multiValueSeparator);
-  column.numberFormat = attr(node, 'numberformat', column.numberFormat);
-  column.dateFormat = attr(node, 'dateformat', column.dateFormat);
-  column.programmaticName = attr(node, 'programmaticname', column.programmaticName);
+  column.hideDetailRows = boolAttr(node, 'hideDetailRows', column.hideDetailRows);
+  column.multiValueSeparator = attr(node, 'multiValueSeparator', column.multiValueSeparator);
+  column.multipleValuesAsSeparateEntries = boolAttr(node, 'multipleValuesAsSeparateEntries', column.multipleValuesAsSeparateEntries);
+  column.numberFormat = attr(node, 'numberFormat', column.numberFormat);
+  column.dateFormat = attr(node, 'dateFormat', column.dateFormat);
+  column.header.hidden = boolAttr(node, 'headerHidden', column.header.hidden);
+  column.header.align = attr(node, 'headerAlign', column.header.align);
+  column.header.useColumnFont = boolAttr(node, 'useColumnFont', column.header.useColumnFont);
 
-  const header = directChild(node, 'columnheader');
-  if (header) {
-    const parsed = parseFont(directChild(header, 'font'), column.header);
-    column.header = {
-      hidden: boolAttr(header, 'hidden', column.header.hidden),
-      align: attr(header, 'align', column.header.align),
-      useColumnFont: boolAttr(header, 'usecolumnfont', column.header.useColumnFont),
-      face: parsed.face,
-      size: parsed.size,
-      color: parsed.color,
-      bold: parsed.bold,
-      italic: parsed.italic,
-      underline: parsed.underline,
-    };
-    const title = codeEvent(header, 'header');
-    if (title) column.title = title.textContent;
-  }
+  const title = childText(node, 'title');
+  if (title !== null) column.title = title;
+  const formula = childText(node, 'formula');
+  if (formula !== null) column.formula = formula;
+  const programmaticName = childText(node, 'programmaticName');
+  if (programmaticName !== null) column.programmaticName = programmaticName;
+  const hideWhen = childText(node, 'hideWhen');
+  if (hideWhen !== null) column.hideWhen = hideWhen;
 
-  column.font = parseFont(directChild(node, 'font'), column.font);
-  const value = codeEvent(node, 'value');
-  if (value) column.formula = value.textContent;
-  const hideWhen = codeEvent(node, 'hidewhen');
-  if (hideWhen) column.hideWhen = hideWhen.textContent;
+  const font = directChild(node, 'font');
+  if (font) Object.assign(column.font, parseFont(font, column.font));
+  const headerFont = directChild(node, 'headerFont');
+  if (headerFont) Object.assign(column.header, parseFont(headerFont, column.header));
   return column;
 }
 
@@ -225,30 +216,31 @@ export function deserialize(xml) {
     throw new Error('Cannot parse XML: DOMParser is not available in this environment');
   }
   const text = String(xml === null || xml === undefined ? '' : xml);
-  if (!text.trim()) throw new Error('Invalid XML: the document is empty');
+  // An empty document simply means an empty view design.
+  if (!text.trim()) return createDesign();
 
   const doc = new DOMParser().parseFromString(text, 'application/xml');
   const parserError = doc.getElementsByTagName('parsererror')[0];
   if (parserError) throw new Error('Invalid XML: ' + parseErrorMessage(parserError));
   const root = doc.documentElement;
   if (!root) throw new Error('Invalid XML: the document has no root element');
-  if (root.nodeName !== 'view') {
-    throw new Error('Invalid XML: root element must be <view> but found <' + root.nodeName + '>');
+  if (root.nodeName !== 'viewTemplate') {
+    throw new Error('Invalid XML: root element must be <viewTemplate> but found <' + root.nodeName + '>');
   }
 
   const design = createDesign({ columns: [] });
-  design.name = attr(root, 'name', design.name);
-  design.alias = attr(root, 'alias', design.alias);
   design.style = attr(root, 'style', design.style);
-  design.alternateRows = boolAttr(root, 'alternaterows', design.alternateRows);
+  design.alternateRows = boolAttr(root, 'alternateRows', design.alternateRows);
 
-  const selection = codeEvent(root, 'selection');
-  if (selection) design.selectionFormula = selection.textContent;
-  const form = codeEvent(root, 'form');
-  if (form) design.formFormula = form.textContent;
+  const name = childText(root, 'name');
+  if (name !== null) design.name = name;
+  const alias = childText(root, 'alias');
+  if (alias !== null) design.alias = alias;
+  const selection = childText(root, 'selectionFormula');
+  if (selection !== null) design.selectionFormula = selection;
+  const form = childText(root, 'formFormula');
+  if (form !== null) design.formFormula = form;
 
-  const columnsNode = directChild(root, 'columns');
-  const columnNodes = columnsNode ? directChildren(columnsNode, 'column') : directChildren(root, 'column');
-  for (const node of columnNodes) design.columns.push(parseColumn(node));
+  for (const node of directChildren(root, 'column')) design.columns.push(parseColumn(node));
   return design;
 }

@@ -108,6 +108,6 @@ test.describe('Formula editing', () => {
     await page.locator('#host .vb-dialog-footer .vb-btn').filter({ hasText: 'OK' }).click();
 
     const xml = await page.evaluate(() => window.__builder.getXml());
-    expect(xml).toContain('<code event="hidewhen">Status = &quot;Closed&quot;</code>');
+    expect(xml).toContain('<hideWhen>Status = &quot;Closed&quot;</hideWhen>');
   });
 });

@@ -20,8 +20,17 @@
 <body>
 <form id="xspForm" action="#" method="post">
   <button id="xspSubmit" type="submit">Submit (host app)</button>
-  <div id="vb" class="xspView" data-view-builder></div>
+  <div id="vb" class="xspView" data-view-builder data-xml="vbDesign"></div>
 </form>
+
+<script type="text/xml" id="vbDesign">
+<viewTemplate>
+  <column width="210" sorted="true"><title>Subject</title><formula>Subject</formula></column>
+  <column width="150"><title>From</title><formula>From</formula></column>
+  <column width="100" align="center" showAs="datetime" sortDescending="true" sortType="datetime" dateFormat="short"><title>Date</title><formula>Date</formula></column>
+  <column width="100" align="right" showAs="number" numberFormat="currency" totals="total"><title>Amount</title><formula>Amount</formula></column>
+</viewTemplate>
+</script>
 
 <script>
   window.__submitted = 0;

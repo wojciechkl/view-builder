@@ -31,6 +31,7 @@ export default {
   'status.xmlHint': 'Edytor XML - zmiany stosowane na bieżąco',
   'status.selected': 'Wybrano: kolumna {n}',
   'status.selectHint': 'Wybierz nagłówek kolumny, aby edytować jej właściwości',
+  'status.readonly': 'Tylko do odczytu - projekt nie może być zmieniany',
 
   'canvas.emptyTitle': 'Ten widok nie ma kolumn',
   'canvas.emptyText': 'Dodaj kolumnę, aby rozpocząć projektowanie widoku.',
@@ -72,6 +73,7 @@ export default {
   'check.hideColumnHeader': 'Ukryj nagłówek kolumny',
   'check.useColumnFont': 'Użyj czcionki kolumny',
   'check.autoWidth': 'Szerokość automatyczna (dopasuj do zawartości)',
+  'check.multipleValues': 'Pokaż wartości wielokrotne jako osobne wpisy',
   'check.resizable': 'Zmiana szerokości',
   'check.clickToSort': 'Sortuj po kliknięciu nagłówka kolumny',
   'check.categorized': 'Kategoryzowana',
@@ -108,7 +110,7 @@ export default {
   'dialog.copied': 'Skopiowano do schowka.',
   'dialog.selectionReady': 'Zaznaczono tekst - naciśnij Ctrl+C, aby skopiować.',
   'dialog.importTitle': 'Importuj projekt widoku z XML',
-  'dialog.importHint': 'Wklej XML projektu widoku wygenerowany przez ten edytor lub eksport DXL z Domino.',
+  'dialog.importHint': 'Wklej XML projektu widoku (viewTemplate) wygenerowany przez ten edytor.',
   'dialog.loadDesign': 'Wczytaj projekt',
 
   'xml.apply': 'Zastosuj XML',

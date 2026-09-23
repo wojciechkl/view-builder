@@ -37,8 +37,8 @@ test.describe('XML editor mode', () => {
     await enterXmlMode(page);
 
     const value = await editorInput(page).inputValue();
-    expect(value).toContain('<code event="header">Custom</code>');
-    expect(value).toContain('<code event="value">Subject</code>');
+    expect(value).toContain('<title>Custom</title>');
+    expect(value).toContain('<formula>Subject</formula>');
     expect(value).not.toContain('resizable=');
     expect(value).not.toContain('<font');
   });
@@ -46,13 +46,12 @@ test.describe('XML editor mode', () => {
   test('editing the XML applies to the design live', async ({ page }) => {
     await enterXmlMode(page);
     await editorInput(page).fill([
-      '<view name="XmlView">',
-      '  <columns>',
-      '    <column width="200">',
-      '      <code event="value">Subject</code>',
-      '    </column>',
-      '  </columns>',
-      '</view>',
+      '<viewTemplate>',
+      '  <name>XmlView</name>',
+      '  <column width="200">',
+      '    <formula>Subject</formula>',
+      '  </column>',
+      '</viewTemplate>',
     ].join('\n'));
 
     await expect(status(page)).toHaveClass(/vb-xml-status-ok/);
@@ -69,7 +68,7 @@ test.describe('XML editor mode', () => {
     page.on('pageerror', (e) => pageErrors.push(String(e)));
     await enterXmlMode(page);
 
-    await editorInput(page).fill('<view><columns></view>');
+    await editorInput(page).fill('<viewTemplate><column></viewTemplate>');
     await expect(status(page)).toHaveClass(/vb-xml-status-error/);
     await expect(status(page)).toContainText('Invalid XML');
     await expect(status(page)).toContainText('line 1');
@@ -87,31 +86,31 @@ test.describe('XML editor mode', () => {
     await enterXmlMode(page);
     await editorInput(page).fill('<database><columns/></database>');
     await expect(status(page)).toHaveClass(/vb-xml-status-error/);
-    await expect(status(page)).toContainText('root element must be <view>');
+    await expect(status(page)).toContainText('root element must be <viewTemplate>');
   });
 
   test('Apply, Format and Revert buttons work', async ({ page }) => {
     await enterXmlMode(page);
-    await editorInput(page).fill('<view name="Applied"><columns/></view>');
+    await editorInput(page).fill('<viewTemplate><name>Applied</name></viewTemplate>');
     await editorButton(page, 'Apply XML').click();
     await expect(status(page)).toContainText('XML applied');
     expect(await page.evaluate(() => window.__builder.getDesign().name)).toBe('Applied');
 
     await editorButton(page, 'Format').click();
     const formatted = await editorInput(page).inputValue();
-    expect(formatted).toContain('<view name="Applied">');
-    expect(formatted).toContain('\n  <columns>\n  </columns>\n</view>');
+    expect(formatted).toContain('<viewTemplate>');
+    expect(formatted).toContain('\n  <name>Applied</name>\n</viewTemplate>');
 
-    await editorInput(page).fill('<view name="Discarded"><columns>');
+    await editorInput(page).fill('<viewTemplate><name>Discarded</name>');
     await expect(status(page)).toHaveClass(/vb-xml-status-error/);
     await editorButton(page, 'Revert').click();
-    await expect(editorInput(page)).toHaveValue(/name="Applied"/);
+    await expect(editorInput(page)).toHaveValue(/<name>Applied<\/name>/);
     expect(await page.evaluate(() => window.__builder.getDesign().name)).toBe('Applied');
   });
 
   test('Ctrl+S applies without leaving the XML editor', async ({ page }) => {
     await enterXmlMode(page);
-    await editorInput(page).fill('<view name="Saved"><columns/></view>');
+    await editorInput(page).fill('<viewTemplate><name>Saved</name></viewTemplate>');
     await editorInput(page).press('Control+s');
     await expect(status(page)).toContainText('XML applied');
     expect(await page.evaluate(() => window.__builder.getDesign().name)).toBe('Saved');

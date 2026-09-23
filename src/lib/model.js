@@ -144,6 +144,7 @@ export function createColumn(overrides) {
     autoWidth: false,
     resizable: true,
     multiValueSeparator: ', ',
+    multipleValuesAsSeparateEntries: false,
     font: defaultFont(),
     header: defaultHeader(),
     sort: 'none',
@@ -168,13 +169,22 @@ export function createDesign(overrides) {
     alternateRows: true,
     selectionFormula: 'SELECT @All',
     formFormula: '',
+    columns: [],
+  };
+  return Object.assign(design, overrides || {});
+}
+
+// Example design used by the demo page and the test harness - a new instance
+// itself always starts empty (no example columns).
+export function createSampleDesign(overrides) {
+  const design = createDesign({
     columns: [
       createColumn({ title: 'Subject', formula: 'Subject', width: 210, sort: 'ascending' }),
       createColumn({ title: 'From', formula: 'From', width: 150 }),
       createColumn({ title: 'Date', formula: 'Date', width: 100, type: 'datetime', align: 'center', sort: 'descending', sortType: 'datetime', dateFormat: 'short' }),
       createColumn({ title: 'Amount', formula: 'Amount', width: 100, type: 'number', align: 'right', numberFormat: 'currency', totals: 'total' }),
     ],
-  };
+  });
   return Object.assign(design, overrides || {});
 }
 

@@ -21,7 +21,7 @@ test.describe('language awareness', () => {
 
   test('a language file loaded after the bundle is selected per instance', async ({ page }) => {
     await page.addScriptTag({ path: PL_PATH });
-    await page.evaluate(() => window.mountBuilder2({ language: 'pl' }));
+    await page.evaluate(() => window.mountBuilder2({ language: 'pl', design: window.ViewBuilder.createSampleDesign() }));
 
     await expect(page.locator('#host2 .vb-view')).toBeVisible();
     await expect(addButton(page, '#host2')).toHaveText('+ Dodaj kolumnę');
@@ -50,7 +50,7 @@ test.describe('language awareness', () => {
   test('a partial custom pack falls back key by key to English', async ({ page }) => {
     await page.evaluate(() => {
       window.ViewBuilder.addLanguage('test', { 'toolbar.addColumn': '+ Add!' });
-      window.mountBuilder2({ language: 'test' });
+      window.mountBuilder2({ language: 'test', design: window.ViewBuilder.createSampleDesign() });
     });
 
     await expect(addButton(page, '#host2')).toHaveText('+ Add!');

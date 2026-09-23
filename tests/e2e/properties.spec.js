@@ -48,8 +48,8 @@ test.describe('Column properties panel', () => {
     expect(colWidth).toBe('');
 
     const xml = await page.evaluate(() => window.__builder.getXml());
-    expect(xml).toContain('autowidth="true"');
-    expect(xml).toContain('widthunit="%"');
+    expect(xml).toContain('autoWidth="true"');
+    expect(xml).toContain('widthUnit="%"');
     expect(xml).not.toContain('width="210"');
 
     const roundTrip = await page.evaluate(() => {
@@ -66,6 +66,22 @@ test.describe('Column properties panel', () => {
 
     await unitField.locator('select').selectOption('px');
     await expect(columnHeader(page, 0).locator('.vb-resize')).toHaveCount(1);
+  });
+
+  test('Basics: multiple values as separate entries is a design property', async ({ page }) => {
+    await selectColumn(page, 0);
+    const option = checkOption(page, 'Show multiple values as separate entries');
+    await expect(option).not.toBeChecked();
+    expect(await page.evaluate(() => window.__builder.getDesign().columns[0].multipleValuesAsSeparateEntries)).toBe(false);
+    expect(await page.evaluate(() => window.__builder.getXml())).not.toContain('multipleValuesAsSeparateEntries');
+
+    await option.check();
+    expect(await page.evaluate(() => window.__builder.getDesign().columns[0].multipleValuesAsSeparateEntries)).toBe(true);
+    expect(await page.evaluate(() => window.__builder.getXml())).toContain('multipleValuesAsSeparateEntries="true"');
+    expect(await page.evaluate(() => window.ViewBuilder.deserialize(window.__builder.getXml()).columns[0].multipleValuesAsSeparateEntries)).toBe(true);
+
+    await option.uncheck();
+    expect(await page.evaluate(() => window.__builder.getXml())).not.toContain('multipleValuesAsSeparateEntries');
   });
 
   test('Basics: alignment segmented control aligns the cells', async ({ page }) => {
@@ -200,17 +216,14 @@ test.describe('Column properties panel', () => {
     expect(await page.evaluate(() => window.__builder.getDesign().columns[0].clickToSort)).toBe(false);
   });
 
-  test('Sort tab: categorized forces ascending sort and disables click-to-sort', async ({ page }) => {
+  test('Sort tab: categorized can be set from any sort mode and forces ascending', async ({ page }) => {
     await selectColumn(page, 1);
     await panelTab(page, 'Sort').click();
-    await expect(checkOption(page, 'Categorized')).toBeDisabled();
-
-    await selectColumn(page, 0);
-    await panelTab(page, 'Sort').click();
+    await expect(checkOption(page, 'Categorized')).toBeEnabled();
     await checkOption(page, 'Categorized').check();
 
     expect(await page.evaluate(() => {
-      const c = window.__builder.getDesign().columns[0];
+      const c = window.__builder.getDesign().columns[1];
       return { categorized: c.categorized, sort: c.sort, clickToSort: c.clickToSort };
     })).toEqual({ categorized: true, sort: 'ascending', clickToSort: false });
     await expect(checkOption(page, 'Click on column header to sort')).toBeDisabled();
@@ -218,11 +231,11 @@ test.describe('Column properties panel', () => {
 
     const xml = await page.evaluate(() => window.__builder.getXml());
     expect(xml).toContain('categorized="true"');
-    expect(await page.evaluate((value) => window.ViewBuilder.deserialize(value).columns[0].categorized, xml)).toBe(true);
+    expect(await page.evaluate((value) => window.ViewBuilder.deserialize(value).columns[1].categorized, xml)).toBe(true);
 
     await fieldInput(page, 'Sort').selectOption('none');
-    expect(await page.evaluate(() => window.__builder.getDesign().columns[0].categorized)).toBe(false);
-    await expect(checkOption(page, 'Categorized')).toBeDisabled();
+    expect(await page.evaluate(() => window.__builder.getDesign().columns[1].categorized)).toBe(false);
+    await expect(checkOption(page, 'Categorized')).toBeEnabled();
   });
 
   test('Totals tab: every total mode computes the right value', async ({ page }) => {

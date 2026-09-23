@@ -61,7 +61,7 @@ test.describe('XPages embedding', () => {
 
   test('auto-mounts declarative elements and reads data-xml', async ({ page }) => {
     await page.goto(HARNESS_URL);
-    await expect(page.locator('#autoHost .vb-view')).toBeVisible();
+    await expect(page.locator('#autoHost .vb-empty')).toBeVisible();
     await expect(page.locator('#autoXmlHost .vb-view')).toBeVisible();
     expect(await columnTitles(page, '#autoXmlHost')).toEqual(['DocSubject']);
     await expect(page.locator('#autoXmlHost .vb-caption-name')).toHaveText('AutoXmlView');
@@ -78,7 +78,7 @@ test.describe('XPages embedding', () => {
       document.body.appendChild(node);
     });
     await expect
-      .poll(() => page.evaluate(() => !!(document.getElementById('dynamic').shadowRoot && document.getElementById('dynamic').shadowRoot.querySelector('.vb-view'))))
+      .poll(() => page.evaluate(() => !!(document.getElementById('dynamic').shadowRoot && document.getElementById('dynamic').shadowRoot.querySelector('.vb-app'))))
       .toBe(true);
   });
 
@@ -98,7 +98,7 @@ test.describe('XPages embedding', () => {
 
   test('supports multiple independent instances', async ({ page }) => {
     await openHarness(page);
-    await page.evaluate(() => window.mountBuilder2({}));
+    await page.evaluate(() => window.mountBuilder2({ design: window.ViewBuilder.createSampleDesign() }));
     await expect(page.locator('#host2 .vb-view')).toBeVisible();
 
     await selectColumn(page, 0);

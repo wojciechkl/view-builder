@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  viewTemplate - complete reference for the XML format used by ViewBuilder.
+
+  Required: only <viewTemplate> and its <column> children. Every attribute and
+  child element below is optional; when a design is exported, values equal to
+  the defaults are omitted, so the smallest useful view is:
+
+    <viewTemplate>
+      <column>
+        <formula>Subject</formula>
+      </column>
+    </viewTemplate>
+
+  Empty designs: <viewTemplate></viewTemplate> (or an empty/blank string) is a
+  valid design with no columns, and a new ViewBuilder instance starts empty
+  when no design is provided. Use ViewBuilder.createSampleDesign() for the
+  four-column example design.
+
+  Read-only preview: pass { readonly: true } to ViewBuilder.mount(), call
+  builder.setReadonly(true), or use the data-readonly attribute on an
+  auto-mounted element. In read-only mode nothing in the UI can change the
+  design; selection and Export XML still work.
+
+  View attributes:
+    style="standard"                        default standard (only style available)
+    alternateRows="true"                    default true
+
+  View child elements:
+    <name>              view name                     default AllDocuments
+    <alias>             view alias                    default empty
+    <selectionFormula>  view selection formula        default SELECT @All
+    <formFormula>       form formula                  default empty
+
+  Column attributes:
+    width="110"                             default 110
+    widthUnit="px"                          px | % | em | rem, default px
+    autoWidth="false"                       default false
+    resizable="true"                        default true
+    align="left"                            left | center | right, default left
+    showAs="text"                           text | number | datetime | icon, default text
+    sorted="false"                          default false
+    sortDescending="false"                  default false
+    sortType="text"                         text | number | datetime, default text
+    clickToSort="true"                      default true
+    categorized="false"                     default false
+    totals="none"                           none | total | average | min | max | count, default none
+    hideDetailRows="false"                  default false
+    multiValueSeparator=", "                default ", "
+    multipleValuesAsSeparateEntries="false" default false
+    numberFormat="general"                  general | fixed | currency | percent, default general
+    dateFormat="default"                    default | short | long | time, default default
+    headerHidden="false"                    default false
+    headerAlign="left"                      left | center | right, default left
+    useColumnFont="false"                   default false
+
+  Column child elements:
+    <title>             column header text            default empty
+    <formula>           column value formula          default empty
+    <programmaticName>  programmatic name             default empty
+    <hideWhen>          hide-when formula             default empty
+    <font>              column font: face, size, color, bold, italic, underline
+                        defaults: face default, size 9, color #111111, no bold/italic/underline
+    <headerFont>        header font, same attributes (ignored when useColumnFont="true")
+                        defaults: face default, size 9, color #111111, bold
+-->
+<viewTemplate alternateRows="false">
+  <name>All Documents</name>
+  <alias>vwAllDocuments</alias>
+  <selectionFormula>SELECT Form = "Memo"</selectionFormula>
+  <formFormula>@If(@IsNewDoc; "Memo"; "Memo")</formFormula>
+
+  <!-- Every non-default column property in one place. -->
+  <column width="210" widthUnit="%" resizable="false" align="right"
+          showAs="number" sorted="true" sortDescending="true" sortType="number"
+          clickToSort="false" totals="total" hideDetailRows="true"
+          multiValueSeparator="; " multipleValuesAsSeparateEntries="true"
+          numberFormat="currency" dateFormat="short" headerAlign="center">
+    <title>Amount</title>
+    <formula>@Text(Amount)</formula>
+    <programmaticName>colAmount</programmaticName>
+    <hideWhen>Status = "Closed"</hideWhen>
+    <font face="arial" size="10pt" color="#336699" bold="true" italic="true" underline="true"/>
+    <headerFont face="times" size="11pt" color="#663300" bold="false" italic="true"/>
+  </column>
+
+  <!-- Categorized, automatic-width column; width and widthUnit are ignored. -->
+  <column autoWidth="true" align="center" sorted="true" categorized="true" clickToSort="false">
+    <title>Status</title>
+    <formula>Status</formula>
+    <programmaticName>colStatus</programmaticName>
+  </column>
+
+  <!-- Smallest useful column: only the formula is needed. -->
+  <column>
+    <formula>Subject</formula>
+  </column>
+</viewTemplate>

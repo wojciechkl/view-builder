@@ -7,14 +7,18 @@
  *   <div id="viewBuilder" style="height:600px"></div>
  *   <script>
  *     var builder = ViewBuilder.mount('#viewBuilder', {
- *       // optional: start from an existing design
- *       design: ViewBuilder.deserialize('<view name="MyView">...</view>'),
+ *       // optional: start from an existing design (a new instance is empty)
+ *       design: ViewBuilder.deserialize('<viewTemplate>...</viewTemplate>'),
+ *       // optional: preview-only, no edit is possible
+ *       readonly: false,
  *       // optional: UI language, defaults to English
  *       language: 'pl',
  *       // optional: react to any change
  *       onChange: function (design) { console.log(builder.getXml()); }
  *     });
- *     builder.getXml();   // serialized design
+ *     builder.getXml();          // serialized design
+ *     builder.setReadonly(true); // switch to preview mode at runtime
+ *     ViewBuilder.createSampleDesign(); // example 4-column design
  *   </script>
  *
  * Translations live in separate language files (dist/lang/<code>.js). Load the
@@ -32,8 +36,8 @@
  *
  * Declarative auto-mount is also supported (also works after XPages partial refresh):
  *
- *   <script type="text/xml" id="viewXml"><view name="MyView">...</view></script>
- *   <div data-view-builder data-xml="viewXml" data-language="pl"></div>
+ *   <script type="text/xml" id="viewXml"><viewTemplate>...</viewTemplate></script>
+ *   <div data-view-builder data-xml="viewXml" data-language="pl" data-readonly="true"></div>
  *
  * The component is dependency free, attaches a Shadow DOM (falling back to the
  * host element when Shadow DOM is unavailable), prefixes every CSS class with
@@ -43,7 +47,7 @@
 
 import { ViewBuilder } from './builder.js';
 import { serialize, deserialize } from './xml.js';
-import { createDesign, createColumn } from './model.js';
+import { createDesign, createColumn, createSampleDesign } from './model.js';
 import { registerLanguage, setDefaultLanguage, getDefaultLanguage, getLanguages } from './i18n.js';
 
 export function mount(target, options) {
@@ -70,7 +74,7 @@ export function languages() {
   return getLanguages();
 }
 
-export { ViewBuilder, serialize, deserialize, createDesign, createColumn };
+export { ViewBuilder, serialize, deserialize, createDesign, createSampleDesign, createColumn };
 
 export const version = '1.0.0';
 
@@ -81,6 +85,7 @@ const api = {
   serialize: serialize,
   deserialize: deserialize,
   createDesign: createDesign,
+  createSampleDesign: createSampleDesign,
   createColumn: createColumn,
   addLanguage: addLanguage,
   setLanguage: setLanguage,
@@ -137,6 +142,7 @@ function autoMountOne(node) {
     const options = {};
     if (design) options.design = design;
     if (node.dataset.language) options.language = node.dataset.language;
+    if (node.dataset.readonly !== undefined) options.readonly = node.dataset.readonly !== 'false';
     new ViewBuilder(node, options);
   } catch (error) {
     // never break the host page because of auto-mount

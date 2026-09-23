@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<viewTemplate>
+  <name>Example generated view</name>
+  <selectionFormula>$docSettings != ""</selectionFormula>
+  <alias>vw.exampleGeneratedView</alias>
+  <column categorized="true" sorted="true" multipleValuesAsSeparateEntries="true">
+    <title>Ustawienia</title>
+    <formula>@GetField("$docSettings")</formula>
+    <programmaticName>colDocSettings</programmaticName>
+  </column>
+  <column sorted="true" sortDescending="true">
+    <title>Utworzono</title>
+    <formula>@Created</formula>
+    <programmaticName>colCreated</programmaticName>
+  </column>
+  <column>
+    <title>Autor</title>
+    <formula>@Name([CN]; $docAuthor)</formula>
+    <programmaticName>colDocAuthor</programmaticName>
+  </column>
+</viewTemplate>

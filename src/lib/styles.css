@@ -599,7 +599,8 @@ td.vb-col-selected {
 }
 
 .vb-input:disabled,
-.vb-select:disabled {
+.vb-select:disabled,
+.vb-textarea:disabled {
   background: var(--vb-row-hover);
   color: #9aa0a6;
   cursor: not-allowed;
@@ -664,6 +665,17 @@ td.vb-col-selected {
 
 .vb-radio-active:hover {
   background: var(--vb-accent);
+}
+
+.vb-radio[disabled] {
+  background: var(--vb-surface);
+  color: #9aa0a6;
+  cursor: default;
+}
+
+.vb-radio-active[disabled] {
+  background: #e8eaed;
+  color: #9aa0a6;
 }
 
 .vb-radio-bold {

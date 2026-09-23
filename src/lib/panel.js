@@ -197,6 +197,7 @@ function renderColumnPanel(root, ctx, column) {
       type: 'button',
       class: 'vb-tab' + (activeTab === tab[0] ? ' vb-tab-active' : ''),
       text: t(tab[1]),
+      dataset: { vbAllow: '1' },
       onclick: () => ctx.setTab(tab[0]),
     }));
   }
@@ -236,6 +237,7 @@ function basicsTab(body, ctx, column) {
   body.appendChild(optionsField);
 
   body.appendChild(field(t('field.alignment'), segmented(column.align, ALIGN_OPTIONS, (v) => ctx.update((c) => { c.align = v; }, { panel: true }), t)));
+  body.appendChild(field(null, checkboxInput(column.multipleValuesAsSeparateEntries, t('check.multipleValues'), (v) => ctx.update((c) => { c.multipleValuesAsSeparateEntries = v; }))));
   body.appendChild(field(t('field.multiValueSeparator'), textInput(column.multiValueSeparator, (v) => ctx.update((c) => { c.multiValueSeparator = v; }))));
 
   if (column.type === 'number') {
@@ -285,7 +287,6 @@ function sortTab(body, ctx, column) {
       c.clickToSort = false;
     }
   }, { panel: true }));
-  categorized.querySelector('input').disabled = column.sort !== 'ascending';
   options.appendChild(categorized);
   const clickToSort = checkboxInput(column.clickToSort, t('check.clickToSort'), (v) => ctx.update((c) => { c.clickToSort = v; }));
   clickToSort.querySelector('input').disabled = column.categorized;
@@ -346,7 +347,7 @@ function renderViewPanel(root, ctx) {
   stats.appendChild(el('div', { class: 'vb-section-title', text: t('section.design') }));
   stats.appendChild(el('div', { class: 'vb-hint', text: t('panel.columnsCount', { n: design.columns.length }) }));
   const actions = el('div', { class: 'vb-inline vb-mt' });
-  actions.appendChild(el('button', { type: 'button', class: 'vb-btn', text: t('toolbar.exportXml'), onclick: () => ctx.exportXml() }));
+  actions.appendChild(el('button', { type: 'button', class: 'vb-btn', text: t('toolbar.exportXml'), dataset: { vbAllow: '1' }, onclick: () => ctx.exportXml() }));
   actions.appendChild(el('button', { type: 'button', class: 'vb-btn', text: t('toolbar.importXml'), onclick: () => ctx.importXml() }));
   stats.appendChild(actions);
   stats.appendChild(el('div', { class: 'vb-hint vb-mt', text: t('hint.viewPanelFooter') }));
@@ -360,4 +361,12 @@ export function renderPanel(root, ctx) {
   const column = ctx.getSelectedColumn();
   if (column) renderColumnPanel(root, ctx, column);
   else renderViewPanel(root, ctx);
+  if (ctx.readonly) {
+    const nodes = root.querySelectorAll('input, select, textarea, button');
+    for (let i = 0; i < nodes.length; i += 1) {
+      const node = nodes[i];
+      if (node.dataset && node.dataset.vbAllow === '1') continue;
+      node.disabled = true;
+    }
+  }
 }

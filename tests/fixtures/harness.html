@@ -6,30 +6,29 @@
 <style>
   html, body { margin: 0; padding: 0; background: #fff; }
   #host, #host2 { width: 1180px; height: 680px; }
-  #autoHost, #autoXmlHost { width: 1180px; height: 680px; }
+  #autoHost, #autoXmlHost, #roHost, #autoReadonlyHost { width: 1180px; height: 680px; }
   .spacer { height: 8px; }
 </style>
 </head>
 <body>
 <div id="host"></div>
 <div id="host2"></div>
+<div id="roHost"></div>
 <div id="autoHost" data-view-builder></div>
 <div id="autoXmlHost" data-view-builder data-xml="autoXml"></div>
+<div id="autoReadonlyHost" data-view-builder data-xml="autoXml" data-readonly="true"></div>
 
 <script type="text/xml" id="autoXml">
-<view name="AutoXmlView" alias="vAuto" style="standard" alternaterows="false">
-  <code event="selection">SELECT Form = "Memo"</code>
-  <columns>
-    <column width="150" resizable="true" align="left" showas="text" sort="ascending" sorttype="text" clicktosort="true" totals="none" hidedetailrows="false" multivalueseparator=", " numberformat="general" dateformat="default" programmaticname="DocSubject">
-      <columnheader hidden="false" align="left" usecolumnfont="false">
-        <font face="default" size="9pt" color="#111111" bold="true" italic="false" underline="false"/>
-        <code event="header">DocSubject</code>
-      </columnheader>
-      <font face="default" size="9pt" color="#111111" bold="false" italic="false" underline="false"/>
-      <code event="value">Subject</code>
-    </column>
-  </columns>
-</view>
+<viewTemplate alternateRows="false">
+  <name>AutoXmlView</name>
+  <alias>vAuto</alias>
+  <selectionFormula>SELECT Form = "Memo"</selectionFormula>
+  <column width="150" sorted="true">
+    <title>DocSubject</title>
+    <formula>Subject</formula>
+    <programmaticName>DocSubject</programmaticName>
+  </column>
+</viewTemplate>
 </script>
 
 <script src="../../dist/view-builder.js"></script>
@@ -41,6 +40,7 @@
   window.mountBuilder = function (options) {
     var host = document.getElementById('host');
     var opts = Object.assign({}, options || {});
+    if (!opts.design) opts.design = window.ViewBuilder.createSampleDesign();
     var userChange = opts.onChange;
     opts.onChange = function (design) {
       window.__changes.push(design);
@@ -52,6 +52,13 @@
       window.__events.push(e.detail.design.name);
     });
     return builder;
+  };
+
+  window.mountBuilderReadonly = function (options) {
+    var opts = Object.assign({}, options || {});
+    if (!opts.design) opts.design = window.ViewBuilder.createSampleDesign();
+    opts.readonly = true;
+    return window.ViewBuilder.mount('#roHost', opts);
   };
 
   window.mountBuilder2 = function (options) {

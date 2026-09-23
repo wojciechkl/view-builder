@@ -28,9 +28,9 @@ function renderHeaderCell(column, index, ctx) {
   const name = t('canvas.columnName', { n: index + 1 });
   const th = el('th', {
     class: 'vb-th' + (selected ? ' vb-selected' : '') + ' vb-align-' + column.header.align,
-    draggable: 'true',
+    draggable: ctx.readonly ? 'false' : 'true',
     dataset: { id: column.id },
-    title: name + (column.title ? ': ' + column.title : '') + '\n' + t('canvas.headerHint'),
+    title: name + (column.title ? ': ' + column.title : '') + (ctx.readonly ? '' : '\n' + t('canvas.headerHint')),
   });
 
   const headerFont = column.header.useColumnFont ? column.font : column.header;
@@ -52,15 +52,21 @@ function renderHeaderCell(column, index, ctx) {
     th.classList.add('vb-th-hidden');
   }
 
-  if (column.resizable && !column.autoWidth && column.widthUnit === 'px') {
+  if (!ctx.readonly && column.resizable && !column.autoWidth && column.widthUnit === 'px') {
     const handle = el('div', { class: 'vb-resize', title: t('canvas.resizeTitle') });
     handle.addEventListener('mousedown', (e) => ctx.beginResize(e, column, th));
     th.appendChild(handle);
   }
 
   th.addEventListener('click', () => ctx.select(column.id));
-  th.addEventListener('dblclick', () => ctx.editFormula());
+  th.addEventListener('dblclick', () => {
+    if (!ctx.readonly) ctx.editFormula();
+  });
   th.addEventListener('dragstart', (e) => {
+    if (ctx.readonly) {
+      e.preventDefault();
+      return;
+    }
     e.dataTransfer.setData('text/plain', column.id);
     e.dataTransfer.effectAllowed = 'move';
     th.classList.add('vb-dragging');
@@ -110,7 +116,7 @@ function renderRow(design, rowIndex, ctx, blankIndexes) {
     td.addEventListener('click', () => ctx.select(column.id));
     tr.appendChild(td);
   }
-  tr.appendChild(el('td', { class: 'vb-td vb-td-add' }));
+  if (!ctx.readonly) tr.appendChild(el('td', { class: 'vb-td vb-td-add' }));
   return tr;
 }
 
@@ -170,7 +176,7 @@ function renderCategoryRow(design, group, level, index, ctx) {
   td.addEventListener('click', () => ctx.select(column.id));
   tr.appendChild(td);
   for (let c = index + 1; c < design.columns.length; c += 1) tr.appendChild(el('td', { class: 'vb-td' }));
-  tr.appendChild(el('td', { class: 'vb-td vb-td-add' }));
+  if (!ctx.readonly) tr.appendChild(el('td', { class: 'vb-td vb-td-add' }));
   return tr;
 }
 
@@ -195,7 +201,7 @@ function renderTotalsRow(design, ctx) {
     }
     tr.appendChild(td);
   }
-  tr.appendChild(el('td', { class: 'vb-td vb-td-add' }));
+  if (!ctx.readonly) tr.appendChild(el('td', { class: 'vb-td vb-td-add' }));
   return tr;
 }
 
@@ -203,6 +209,7 @@ export function renderCanvas(host, ctx) {
   clear(host);
   const design = ctx.design;
   const t = ctx.t;
+  const showAdd = !ctx.readonly;
   host.appendChild(renderCaption(design, t));
 
   const scroll = el('div', { class: 'vb-canvas' });
@@ -212,17 +219,20 @@ export function renderCanvas(host, ctx) {
   host.appendChild(scroll);
 
   if (!design.columns.length) {
-    scroll.appendChild(el('div', { class: 'vb-empty' }, [
+    const empty = el('div', { class: 'vb-empty' }, [
       el('div', { class: 'vb-empty-title', text: t('canvas.emptyTitle') }),
       el('div', { class: 'vb-empty-text', text: t('canvas.emptyText') }),
-      el('button', { type: 'button', class: 'vb-btn vb-btn-primary', text: t('toolbar.addColumn'), onclick: () => ctx.addColumn() }),
-    ]));
+    ]);
+    if (showAdd) {
+      empty.appendChild(el('button', { type: 'button', class: 'vb-btn vb-btn-primary', text: t('toolbar.addColumn'), onclick: () => ctx.addColumn() }));
+    }
+    scroll.appendChild(empty);
     return;
   }
 
   const table = el('table', { class: 'vb-view' + (design.alternateRows ? ' vb-alt-rows' : '') });
   const exactWidth = design.columns.every((c) => !c.autoWidth && c.widthUnit === 'px');
-  let totalWidth = ADD_COL_WIDTH;
+  let totalWidth = showAdd ? ADD_COL_WIDTH : 0;
   const colgroup = el('colgroup');
   for (const column of design.columns) {
     const col = el('col', { dataset: { id: column.id } });
@@ -230,18 +240,20 @@ export function renderCanvas(host, ctx) {
     colgroup.appendChild(col);
     totalWidth += column.width;
   }
-  colgroup.appendChild(el('col', { style: { width: ADD_COL_WIDTH + 'px' } }));
+  if (showAdd) colgroup.appendChild(el('col', { style: { width: ADD_COL_WIDTH + 'px' } }));
   table.appendChild(colgroup);
   table.style.width = exactWidth ? totalWidth + 'px' : '100%';
 
   const headRow = el('tr');
   design.columns.forEach((column, index) => headRow.appendChild(renderHeaderCell(column, index, ctx)));
-  headRow.appendChild(el('th', {
-    class: 'vb-th vb-th-add',
-    text: '+',
-    title: t('canvas.addColumnTitle'),
-    onclick: () => ctx.addColumn(),
-  }));
+  if (showAdd) {
+    headRow.appendChild(el('th', {
+      class: 'vb-th vb-th-add',
+      text: '+',
+      title: t('canvas.addColumnTitle'),
+      onclick: () => ctx.addColumn(),
+    }));
+  }
   const thead = el('thead');
   thead.appendChild(headRow);
   table.appendChild(thead);

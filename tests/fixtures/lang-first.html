@@ -11,10 +11,19 @@
 <div id="host"></div>
 <div id="autoHost" data-view-builder data-language="pl"></div>
 
+<script type="text/xml" id="plDesign">
+<viewTemplate>
+  <column width="210" sorted="true"><title>Subject</title><formula>Subject</formula></column>
+  <column width="150"><title>From</title><formula>From</formula></column>
+  <column width="100" align="center" showAs="datetime" sortDescending="true" sortType="datetime" dateFormat="short"><title>Date</title><formula>Date</formula></column>
+  <column width="100" align="right" showAs="number" numberFormat="currency" totals="total"><title>Amount</title><formula>Amount</formula></column>
+</viewTemplate>
+</script>
+
 <script src="../../dist/lang/pl.js"></script>
 <script src="../../dist/view-builder.js"></script>
 <script>
-  window.__builder = window.ViewBuilder.mount('#host', { language: 'pl' });
+  window.__builder = window.ViewBuilder.mount('#host', { language: 'pl', design: window.ViewBuilder.deserialize(document.getElementById('plDesign').textContent) });
 </script>
 </body>
 </html>
