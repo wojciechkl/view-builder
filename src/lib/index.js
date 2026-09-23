@@ -25,6 +25,22 @@
  *     builder.setViewAlias('vAll');
  *     builder.setReadonly(true); // switch to preview mode at runtime
  *     ViewBuilder.createSampleDesign(); // example 4-column design
+ *
+ *     // subscribe to property changes for two-way binding:
+ *     //   phase 'input'  - intermediate, while typing / dragging / picking
+ *     //   phase 'commit' - on blur/change, or when a dialog/API set the value
+ *     var onPropertyChange = function (change) {
+ *       // change: { phase, property, path, value, previous,
+ *       //           columnId, columnIndex, design }
+ *       if (change.phase === 'commit') persist(change.path, change.value);
+ *     };
+ *     builder.on('propertychange', onPropertyChange);
+ *     // later: builder.off('propertychange', onPropertyChange);
+ *     // the same event bubbles on the host as 'viewbuilder:propertychange'
+ *     document.getElementById('viewBuilder')
+ *       .addEventListener('viewbuilder:propertychange', function (e) {
+ *         console.log(e.detail.path, e.detail.value, e.detail.phase);
+ *       });
  *   </script>
  *
  * Translations live in separate language files (dist/lang/<code>.js). Load the

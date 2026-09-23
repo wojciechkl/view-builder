@@ -24,6 +24,7 @@ export class ViewBuilder {
     this.tab = 'basics';
     this.mode = 'design';
     this._dragId = null;
+    this._listeners = Object.create(null);
     this._collapsed = new Set();
     this._destroyed = false;
     this._xmlTimer = null;
@@ -221,6 +222,62 @@ export class ViewBuilder {
     if (typeof CustomEvent === 'function') {
       this.host.dispatchEvent(new CustomEvent('viewbuilder:change', { detail: { design: design }, bubbles: true }));
     }
+  }
+
+  // -- events --------------------------------------------------------------
+
+  // Subscribe to component events. Currently emitted:
+  //   'propertychange' - a design property changed; detail:
+  //     { phase: 'input' | 'commit', property, path, value, previous,
+  //       columnId, columnIndex, design }
+  // 'input' fires while typing, dragging or picking a color; 'commit' fires
+  // on blur/change (or when a dialog/API call sets the value).
+  on(type, handler) {
+    if (!type || typeof handler !== 'function') return this;
+    const handlers = this._listeners[type] || (this._listeners[type] = new Set());
+    handlers.add(handler);
+    return this;
+  }
+
+  off(type, handler) {
+    const handlers = this._listeners[type];
+    if (!handlers) return this;
+    if (handler) handlers.delete(handler);
+    else delete this._listeners[type];
+    return this;
+  }
+
+  _emit(type, detail) {
+    if (this._destroyed) return;
+    const handlers = this._listeners[type];
+    if (handlers) {
+      for (const handler of Array.from(handlers)) handler(detail, this);
+    }
+    if (typeof CustomEvent === 'function') {
+      this.host.dispatchEvent(new CustomEvent('viewbuilder:' + type, { detail: detail, bubbles: true }));
+    }
+  }
+
+  _readPath(target, path) {
+    const parts = path.split('.');
+    let node = target;
+    for (let i = 0; i < parts.length - 1 && node != null; i++) node = node[parts[i]];
+    return node == null ? undefined : node[parts[parts.length - 1]];
+  }
+
+  _emitPropertyChange(target, path, previous, phase) {
+    const columnIndex = this.design.columns.indexOf(target);
+    const isColumn = columnIndex >= 0;
+    this._emit('propertychange', {
+      phase: phase === 'input' ? 'input' : 'commit',
+      property: path,
+      path: isColumn ? 'columns.' + columnIndex + '.' + path : path,
+      value: this._readPath(target, path),
+      previous: previous,
+      columnId: isColumn ? target.id : null,
+      columnIndex: isColumn ? columnIndex : -1,
+      design: this.getDesign(),
+    });
   }
 
   // -- selection / tabs ----------------------------------------------------
@@ -440,6 +497,7 @@ export class ViewBuilder {
     event.stopPropagation();
     const startX = event.clientX;
     const startWidth = column.width;
+    let lastWidth = startWidth;
     const colEl = this.canvasWrap.querySelector('col[data-id="' + column.id + '"]');
     const widthInput = this.panelWrap.querySelector('[data-prop="width"]');
     const table = this.canvasWrap.querySelector('.vb-view');
@@ -463,13 +521,20 @@ export class ViewBuilder {
           table.style.width = '100%';
         }
       }
+      if (width !== lastWidth) {
+        this._emitPropertyChange(column, 'width', lastWidth, 'input');
+        lastWidth = width;
+      }
     };
     const onUp = () => {
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onUp);
       headerCell.draggable = true;
       this.app.classList.remove('vb-resizing');
-      if (!this.readonly) this._notify();
+      if (!this.readonly) {
+        this._notify();
+        if (lastWidth !== startWidth) this._emitPropertyChange(column, 'width', startWidth, 'commit');
+      }
     };
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
@@ -481,19 +546,25 @@ export class ViewBuilder {
     if (this.readonly) return;
     const column = this.getSelectedColumn();
     if (!column) return;
+    const opts = options || {};
+    const previous = opts.property ? this._readPath(column, opts.property) : undefined;
     mutator(column);
     this._renderCanvasOnly();
-    if (options && options.panel) renderPanel(this.panelWrap, this);
+    if (opts.panel) renderPanel(this.panelWrap, this);
     else this._syncPanelSub();
     this._notify();
+    if (opts.property) this._emitPropertyChange(column, opts.property, previous, opts.phase);
   }
 
   updateDesign(mutator, options) {
     if (this.readonly) return;
+    const opts = options || {};
+    const previous = opts.property ? this._readPath(this.design, opts.property) : undefined;
     mutator(this.design);
     this._renderCanvasOnly();
-    if (options && options.panel) renderPanel(this.panelWrap, this);
+    if (opts.panel) renderPanel(this.panelWrap, this);
     this._notify();
+    if (opts.property) this._emitPropertyChange(this.design, opts.property, previous, opts.phase);
   }
 
   // -- formulas ------------------------------------------------------------
@@ -519,7 +590,7 @@ export class ViewBuilder {
       this.t('formula.columnTitle', { n: index + 1 }),
       column.formula,
       this.t('formula.columnHint'),
-      (value) => this.update((c) => { c.formula = value; }, { panel: true })
+      (value) => this.update((c) => { c.formula = value; }, { panel: true, property: 'formula', phase: 'commit' })
     );
   }
 
@@ -531,7 +602,7 @@ export class ViewBuilder {
       this.t('formula.hideWhenTitle'),
       column.hideWhen,
       this.t('hint.hideWhen'),
-      (value) => this.update((c) => { c.hideWhen = value; }, { panel: true })
+      (value) => this.update((c) => { c.hideWhen = value; }, { panel: true, property: 'hideWhen', phase: 'commit' })
     );
   }
 
@@ -541,7 +612,7 @@ export class ViewBuilder {
       this.t('formula.selectionTitle'),
       this.design.selectionFormula,
       this.t('formula.selectionHint'),
-      (value) => this.updateDesign((d) => { d.selectionFormula = value; })
+      (value) => this.updateDesign((d) => { d.selectionFormula = value; }, { property: 'selectionFormula', phase: 'commit' })
     );
   }
 
@@ -551,7 +622,7 @@ export class ViewBuilder {
       this.t('formula.formTitle'),
       this.design.formFormula,
       this.t('formula.formHint'),
-      (value) => this.updateDesign((d) => { d.formFormula = value; })
+      (value) => this.updateDesign((d) => { d.formFormula = value; }, { property: 'formFormula', phase: 'commit' })
     );
   }
 
@@ -607,10 +678,12 @@ export class ViewBuilder {
     if (this.readonly) return this;
     const next = value == null ? '' : String(value);
     if (this.design[prop] === next) return this;
+    const previous = this.design[prop];
     this.design[prop] = next;
     this._renderCanvasOnly();
     if (!this.selectedId) renderPanel(this.panelWrap, this);
     this._notify();
+    this._emitPropertyChange(this.design, prop, previous, 'commit');
     return this;
   }
 
