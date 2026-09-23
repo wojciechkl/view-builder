@@ -10,6 +10,7 @@ import {
   fieldInput,
   checkOption,
   panelTab,
+  dragColumn,
 } from './helpers.js';
 
 test.describe('empty designs and read-only mode', () => {
@@ -97,6 +98,11 @@ test.describe('empty designs and read-only mode', () => {
       const columns = builder.getDesign().columns;
       builder.reorderColumns(columns[0].id, columns[1].id, true);
       builder.setMode('xml');
+      builder.setDesign(window.ViewBuilder.deserialize('<viewTemplate><name>Injected</name></viewTemplate>'));
+      builder.setXml('<viewTemplate><name>Injected</name></viewTemplate>');
+      builder.xmlInput.value = '<viewTemplate><name>Injected</name></viewTemplate>';
+      builder.applyXmlText();
+      builder.toggleXmlMode();
       const design = builder.getDesign();
       return {
         columns: design.columns.length,
@@ -112,9 +118,65 @@ test.describe('empty designs and read-only mode', () => {
     expect(result.mode).toBe('design');
     expect(result.readonly).toBe(true);
 
+    const before = await columnTitles(page, '#roHost');
+    await dragColumn(page, 0, 2, false, '#roHost');
+    expect(await columnTitles(page, '#roHost')).toEqual(before);
+    await expect(columnHeader(page, 0, '#roHost')).toHaveAttribute('draggable', 'false');
+
     await columnHeader(page, 0, '#roHost').dblclick();
     await expect(dialog(page, '#roHost')).toHaveCount(0);
     await expect(page.locator('#roHost .vb-xml-editor')).toBeHidden();
+  });
+
+  test('read-only mode disables every panel control except tabs and Export XML', async ({ page }) => {
+    await page.evaluate(() => window.mountBuilderReadonly());
+    await selectColumn(page, 0, '#roHost');
+
+    const enabledPanelControls = () => {
+      const root = document.querySelector('#roHost').shadowRoot;
+      const out = [];
+      root.querySelectorAll('.vb-panel input, .vb-panel select, .vb-panel textarea, .vb-panel button').forEach((node) => {
+        if (!node.disabled && node.dataset.vbAllow !== '1') out.push(node.tagName + ':' + node.className);
+      });
+      return out;
+    };
+    expect(await page.evaluate(enabledPanelControls)).toEqual([]);
+
+    await page.locator('#roHost .vb-canvas').click({ position: { x: 700, y: 400 } });
+    expect(await page.evaluate(enabledPanelControls)).toEqual([]);
+    await expect(page.locator('#roHost .vb-panel .vb-btn').filter({ hasText: 'Export XML' })).toBeEnabled();
+    await expect(page.locator('#roHost .vb-panel .vb-btn').filter({ hasText: 'Import XML' })).toBeDisabled();
+  });
+
+  test('a read-only instance with no columns cannot create the first column', async ({ page }) => {
+    await page.evaluate(() => { window.__host2 = window.mountBuilder2({ readonly: true }); });
+
+    await expect(page.locator('#host2 .vb-empty')).toBeVisible();
+    await expect(page.locator('#host2 .vb-empty .vb-btn')).toHaveCount(0);
+    await expect(toolbarButton(page, 'Add Column', '#host2')).toBeDisabled();
+    await expect(page.locator('#host2 .vb-status-hint')).toContainText('Read-only');
+
+    await page.evaluate(() => window.__host2.setReadonly(false));
+    await expect(page.locator('#host2 .vb-empty .vb-btn')).toBeVisible();
+    await page.locator('#host2 .vb-empty .vb-btn').click();
+    await expect(page.locator('#host2 .vb-th-title')).toHaveCount(1);
+  });
+
+  test('switching to read-only during a resize stops further changes', async ({ page }) => {
+    const handle = page.locator('#host .vb-resize').first();
+    const box = await handle.boundingBox();
+    const y = box.y + box.height / 2;
+    await page.mouse.move(box.x + box.width - 1, y);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width + 39, y);
+    const mid = await page.evaluate(() => window.__builder.getDesign().columns[0].width);
+
+    await page.evaluate(() => window.__builder.setReadonly(true));
+    await page.mouse.move(box.x + box.width + 139, y);
+    await page.mouse.up();
+
+    const after = await page.evaluate(() => window.__builder.getDesign().columns[0].width);
+    expect(after).toBe(mid);
   });
 
   test('Export XML still works in read-only mode', async ({ page }) => {

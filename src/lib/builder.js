@@ -282,6 +282,7 @@ export class ViewBuilder {
       this.btnXmlMode.classList.remove('vb-btn-active');
       this._applyStaticTexts();
     }
+    this._dragId = null;
     this.readonly = next;
     this._render();
     return this;
@@ -336,6 +337,7 @@ export class ViewBuilder {
   }
 
   applyXmlText() {
+    if (this.readonly) return false;
     const text = this.xmlInput.value;
     if (text === this._xmlAppliedText) return true;
     let design;
@@ -445,6 +447,7 @@ export class ViewBuilder {
     this.app.classList.add('vb-resizing');
 
     const onMove = (moveEvent) => {
+      if (this.readonly) return;
       const width = Math.max(24, Math.round(startWidth + moveEvent.clientX - startX));
       column.width = width;
       if (colEl) colEl.style.width = width + 'px';
@@ -466,7 +469,7 @@ export class ViewBuilder {
       document.removeEventListener('mouseup', onUp);
       headerCell.draggable = true;
       this.app.classList.remove('vb-resizing');
-      this._notify();
+      if (!this.readonly) this._notify();
     };
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
@@ -585,6 +588,7 @@ export class ViewBuilder {
   }
 
   setDesign(design) {
+    if (this.readonly) return;
     this.design = cloneDesign(design);
     this.selectedId = this.design.columns.length ? this.design.columns[0].id : null;
     this._collapsed.clear();

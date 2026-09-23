@@ -10,6 +10,7 @@
  *       // optional: start from an existing design (a new instance is empty)
  *       design: ViewBuilder.deserialize('<viewTemplate>...</viewTemplate>'),
  *       // optional: preview-only, no edit is possible
+ *       // (every mutating API call is ignored while readonly)
  *       readonly: false,
  *       // optional: UI language, defaults to English
  *       language: 'pl',

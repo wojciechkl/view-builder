@@ -19,8 +19,11 @@
 
   Read-only preview: pass { readonly: true } to ViewBuilder.mount(), call
   builder.setReadonly(true), or use the data-readonly attribute on an
-  auto-mounted element. In read-only mode nothing in the UI can change the
-  design; selection and Export XML still work.
+  auto-mounted element. In read-only mode nothing can change the design:
+  every edit affordance is hidden or disabled and the mutating API calls
+  (addColumn, update, updateDesign, setDesign, setXml, applyXmlText, ...)
+  are ignored. Selection, category expansion, tabs and Export XML still work.
+  Call setReadonly(false) to unlock an instance before changing its design.
 
   View attributes:
     style="standard"                        default standard (only style available)
