@@ -18,6 +18,11 @@
  *       onChange: function (design) { console.log(builder.getXml()); }
  *     });
  *     builder.getXml();          // serialized design
+ *     builder.getViewName();     // current view name
+ *     builder.getViewAlias();    // current view alias ('' when not set)
+ *     // set identity from the host UI (ignored in readonly mode):
+ *     builder.setViewName('AllDocuments');
+ *     builder.setViewAlias('vAll');
  *     builder.setReadonly(true); // switch to preview mode at runtime
  *     ViewBuilder.createSampleDesign(); // example 4-column design
  *   </script>

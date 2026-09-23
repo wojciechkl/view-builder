@@ -587,6 +587,33 @@ export class ViewBuilder {
     return cloneDesign(this.design);
   }
 
+  getViewName() {
+    return this.design.name;
+  }
+
+  getViewAlias() {
+    return this.design.alias;
+  }
+
+  setViewName(name) {
+    return this._setViewIdentity('name', name);
+  }
+
+  setViewAlias(alias) {
+    return this._setViewIdentity('alias', alias);
+  }
+
+  _setViewIdentity(prop, value) {
+    if (this.readonly) return this;
+    const next = value == null ? '' : String(value);
+    if (this.design[prop] === next) return this;
+    this.design[prop] = next;
+    this._renderCanvasOnly();
+    if (!this.selectedId) renderPanel(this.panelWrap, this);
+    this._notify();
+    return this;
+  }
+
   setDesign(design) {
     if (this.readonly) return;
     this.design = cloneDesign(design);

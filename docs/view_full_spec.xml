@@ -21,9 +21,18 @@
   builder.setReadonly(true), or use the data-readonly attribute on an
   auto-mounted element. In read-only mode nothing can change the design:
   every edit affordance is hidden or disabled and the mutating API calls
-  (addColumn, update, updateDesign, setDesign, setXml, applyXmlText, ...)
-  are ignored. Selection, category expansion, tabs and Export XML still work.
+  (addColumn, update, updateDesign, setDesign, setXml, applyXmlText,
+  setViewName, setViewAlias, ...) are ignored. Selection, category expansion,
+  tabs and Export XML still work.
   Call setReadonly(false) to unlock an instance before changing its design.
+
+  View identity (name and alias): editable in the view properties panel,
+  readable from the host with builder.getViewName() / builder.getViewAlias()
+  (or through builder.getDesign() / builder.getXml()), and settable from host
+  UI with builder.setViewName(name) / builder.setViewAlias(alias). Both
+  setters update the preview immediately, fire onChange and are ignored in
+  read-only mode. Hosts that keep the view name and alias in their own
+  persistent fields can read them from the component when saving.
 
   View attributes:
     style="standard"                        default standard (only style available)

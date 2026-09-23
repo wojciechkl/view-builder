@@ -103,10 +103,15 @@ test.describe('empty designs and read-only mode', () => {
       builder.xmlInput.value = '<viewTemplate><name>Injected</name></viewTemplate>';
       builder.applyXmlText();
       builder.toggleXmlMode();
+      builder.setViewName('HackedName');
+      builder.setViewAlias('vHacked');
       const design = builder.getDesign();
       return {
         columns: design.columns.length,
         name: design.name,
+        alias: design.alias,
+        viewName: builder.getViewName(),
+        viewAlias: builder.getViewAlias(),
         title: design.columns[0].title,
         mode: builder.mode,
         readonly: builder.getReadonly(),
@@ -114,6 +119,9 @@ test.describe('empty designs and read-only mode', () => {
     });
     expect(result.columns).toBe(4);
     expect(result.name).toBe('AllDocuments');
+    expect(result.alias).toBe('');
+    expect(result.viewName).toBe('AllDocuments');
+    expect(result.viewAlias).toBe('');
     expect(result.title).toBe('Subject');
     expect(result.mode).toBe('design');
     expect(result.readonly).toBe(true);

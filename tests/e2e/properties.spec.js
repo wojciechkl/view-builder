@@ -290,10 +290,29 @@ test.describe('Column properties panel', () => {
     await page.locator('#host .vb-canvas').click({ position: { x: 760, y: 420 } });
     await expect(page.locator('#host .vb-panel')).toContainText('View name');
 
+    expect(await page.evaluate(() => window.__builder.getViewName())).toBe('AllDocuments');
+    expect(await page.evaluate(() => window.__builder.getViewAlias())).toBe('');
+
     await fieldInput(page, 'View name').fill('ByStatus');
     await fieldInput(page, 'Alias').fill('vByStatus');
     await expect(page.locator('#host .vb-caption-name')).toHaveText('ByStatus');
     await expect(page.locator('#host .vb-caption-alias')).toHaveText('(vByStatus)');
+    expect(await page.evaluate(() => window.__builder.getViewName())).toBe('ByStatus');
+    expect(await page.evaluate(() => window.__builder.getViewAlias())).toBe('vByStatus');
+    expect(await page.evaluate(() => window.__builder.getDesign().name)).toBe('ByStatus');
+    expect(await page.evaluate(() => window.__changes[window.__changes.length - 1].alias)).toBe('vByStatus');
+
+    await page.evaluate(() => window.__builder.setViewName('ExternalName').setViewAlias('vExternal'));
+    await expect(page.locator('#host .vb-caption-name')).toHaveText('ExternalName');
+    await expect(page.locator('#host .vb-caption-alias')).toHaveText('(vExternal)');
+    await expect(page.locator('#host .vb-status')).toContainText('ExternalName');
+    await expect(fieldInput(page, 'View name')).toHaveValue('ExternalName');
+    await expect(fieldInput(page, 'Alias')).toHaveValue('vExternal');
+    expect(await page.evaluate(() => window.__builder.getViewName())).toBe('ExternalName');
+    expect(await page.evaluate(() => window.__builder.getViewAlias())).toBe('vExternal');
+    const externalXml = await page.evaluate(() => window.__builder.getXml());
+    expect(externalXml).toContain('<name>ExternalName</name>');
+    expect(externalXml).toContain('<alias>vExternal</alias>');
 
     await fieldInput(page, 'View style').selectOption('standard');
     await expect(page.locator('#host .vb-caption-info')).toContainText('4 columns');
